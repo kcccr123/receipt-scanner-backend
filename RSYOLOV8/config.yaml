@@ -1,0 +1,9 @@
+path: D:/RecieptScanner/data  # dataset root dir
+train: train/images  # train images (relative to 'path')
+val: val/images  # val images (relative to 'path')
+
+# Classes
+names:
+  0: item
+  1: subtotal
+  2: total
