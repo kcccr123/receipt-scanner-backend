@@ -173,3 +173,49 @@ class WERMetric(Metric):
 
     def result(self) -> float:
         return self.wer / self.counter
+    
+
+    class MetricsHandler:
+        #control metrics during training and testing
+        def __init__(self, metrics: typing.List[Metric]):
+            self.metrics = metrics
+
+            # Validate metrics
+            if not all(isinstance(m, Metric) for m in self.metrics):
+                raise TypeError("all items in the metrics argument must be of type Metric (Check mltu.metrics.metrics.py for more information)")
+            
+            self.train_results_dict = {"loss": None}
+            self.train_results_dict.update({metric.name: None for metric in self.metrics})
+            
+            self.val_results_dict = {"val_loss": None}
+            self.val_results_dict.update({"val_" + metric.name: None for metric in self.metrics})
+
+        def update(self, target, output, **kwargs):
+            for metric in self.metrics:
+                metric.update(output, target, **kwargs)
+
+        def reset(self):
+            for metric in self.metrics:
+                metric.reset()
+
+        def results(self, loss, train: bool=True):
+            suffix = "val_" if not train else ""
+            results_dict = self.val_results_dict if not train else self.train_results_dict
+            results_dict[suffix + "loss"] = loss
+            for metric in self.metrics:
+                result = metric.result()
+                if result:
+                    if isinstance(result, dict):
+                        for k, v in result.items():
+                            results_dict[suffix + k] = v
+                    else:
+                        results_dict[suffix + metric.name] = result
+
+            logs = {k: round(v, 4) for k, v in results_dict.items() if v is not None}
+            return logs
+        
+        def description(self, epoch: int=None, train: bool=True):
+            epoch_desc = f"Epoch {epoch} - " if epoch is not None else "          "
+            dict = self.train_results_dict if train else self.val_results_dict
+            return epoch_desc + " - ".join([f"{k}: {v:.4f}" for k, v in dict.items() if v])
+        
