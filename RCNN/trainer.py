@@ -1,5 +1,6 @@
 import os
 import torch
+import torch.nn as nn
 import typing
 import traceback
 import numpy as np
@@ -31,12 +32,10 @@ class Trainer:
         self.model = model
         self.optimizer = optimizer
         self.loss = loss
-        # get device on which model is running
-        self._device = next(self.model.parameters()).device
-
         self.metrics = MetricsHandler(metrics)
 
         self.log_errors = log_errors
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
         self.output_path = Path(output_path) if output_path else None
         if self.output_path:
@@ -53,30 +52,34 @@ class Trainer:
         self.optimizer.zero_grad()#clean up prev step
 
         output = self.model(data)#forward pass
+        #print("Train Step - Model Output:", output)  # Debug print
         loss = self.loss(output, target)#compute loss
 
         if isinstance(loss, tuple):
             loss, loss_info = loss[0], loss[1:]
         
-        loss.backward()#compute parameters
+        loss.backward(retain_graph=True)#compute parameters
 
         self.optimizer.step() #update parameters
 
-        if self._device.type == "cuda":
+        if next(self.model.parameters()).device == "cuda":
             torch.cuda.synchronize() # synchronize after each forward and backward pass
 
         self.metrics.update(target, output, model=self.model, loss_info=loss_info)
+        #print(f"Train Step: Loss={loss.item()}, Target={target}, Output={output}")
 
         return loss
     
     def validation_step(self, data: typing.Union[np.ndarray, torch.Tensor], target: typing.Union[np.ndarray, torch.Tensor],
                     loss_info: dict = {} ) -> torch.Tensor:
         output = self.model(data)
+        #print("Validation Step - Model Output:", output)  # Debug print
         loss = self.loss(output, target)
         if isinstance(loss, tuple):
             loss, loss_info = loss[0], loss[1:]
 
         self.metrics.update(target, output, model=self.model, loss_info=loss_info)
+        #print(f"Val Step: Loss={loss.item()}, Target={target}, Output={output}")
 
         # clear GPU memory cache after each validation step
         torch.cuda.empty_cache()
@@ -92,7 +95,13 @@ class Trainer:
         for step, (data, target) in enumerate(pbar, start=1):
             self.callbacks.on_batch_begin(step, logs=None, train=True)
 
-            data, target = self.toDevice(*toTorch(data, target))
+            data, target = toTorch(data, target)
+
+            #put  onto gpu
+            data, target = data.to(self.device), target.to(self.device)
+            #print("Train Data and Target:", data, target)  # Debug print
+
+
             loss = self.train_step(data, target)
             loss_sum += loss.item()
             loss_mean = loss_sum / step
@@ -131,7 +140,11 @@ class Trainer:
             for step, (data, target) in enumerate(pbar, start=1):
                 self.callbacks.on_batch_begin(step, logs=None, train=False)
 
-                data, target = self.toDevice(*toTorch(data, target))
+                data, target = toTorch(data, target)
+                #put  onto gpu
+                data, target = data.to(self.device), target.to(self.device)
+                #print("Validation Data and Target:", data, target)  # Debug print
+
                 loss = self.validation_step(data, target)
                 loss_sum += loss.item()
                 loss_mean = loss_sum / step
@@ -160,7 +173,7 @@ class Trainer:
             return
         
         model_to_save = self.model
-        
+
         output_path = Path(path or self.output_path)
         os.makedirs(output_path.parent, exist_ok=True)
         model_to_save.eval()
@@ -206,3 +219,39 @@ class Trainer:
         self.model.eval()
         logs = self.validation(dataLoader)
         return logs
+
+class CTCLoss(nn.Module):
+    """ CTC loss for PyTorch
+    """
+    def __init__(self, blank: int, reduction: str="mean", zero_infinity: bool=False):
+        """ CTC loss for PyTorch
+
+        Args:
+            blank: Index of the blank label
+        """
+        super(CTCLoss, self).__init__()
+        self.ctc_loss = nn.CTCLoss(blank=blank, reduction=reduction, zero_infinity=zero_infinity)
+        self.blank = blank
+
+    def forward(self, output, target):
+        """
+        Args:
+            output: Tensor of shape (batch_size, num_classes, sequence_length)
+            target: Tensor of shape (batch_size, sequence_length)
+            
+        Returns:
+            loss: Scalar
+        """
+        # Remove padding and blank tokens from target
+        target_lengths = torch.sum(target != self.blank, dim=1)
+        using_dtype = torch.int32 if max(target_lengths) <= 256 else torch.int64
+        device = output.device
+
+        target_unpadded = target[target != self.blank].view(-1).to(using_dtype)
+
+        output = output.permute(1, 0, 2)  # (sequence_length, batch_size, num_classes)
+        output_lengths = torch.full(size=(output.size(1),), fill_value=output.size(0), dtype=using_dtype).to(device)
+
+        loss = self.ctc_loss(output, target_unpadded, output_lengths, target_lengths.to(using_dtype))
+
+        return loss

@@ -9,39 +9,20 @@ from dataUtils import Transformer, Augmentor
 
 class DataLoader:
     def __init__(self, dataset: typing.Union[str, list, pd.DataFrame], data_preprocessors: typing.List[typing.Callable] = None,
-                batch_size: int = 4, shuffle: bool = True, initial_epoch: int = 1, augmentors: typing.List[Augmentor] = None,
+                batch_size: int = 4, initial_epoch: int = 1, augmentors: typing.List[Augmentor] = None,
                 transformers: typing.List[Transformer] = None, batch_postprocessors: typing.List[typing.Callable] = None,
-                use_cache: bool = False, log_level: int = logging.INFO, numpy: bool = True ) -> None:
-        """ Standardised object for providing data to a model while training.
-
-        Attributes:
-            dataset (str, list, pd.DataFrame): Path to dataset, list of data or pandas dataframe of data.
-            data_preprocessors (list): List of data preprocessors. (e.g. [read image, read audio, etc.])
-            batch_size (int): The number of samples to include in each batch. Defaults to 4.
-            shuffle (bool): Whether to shuffle the data. Defaults to True.
-            initial_epoch (int): The initial epoch. Defaults to 1.
-            augmentors (list, optional): List of augmentor functions. Defaults to None.
-            transformers (list, optional): List of transformer functions. Defaults to None.
-            batch_postprocessors (list, optional): List of batch postprocessor functions. Defaults to None.
-            skip_validation (bool, optional): Whether to skip validation. Defaults to True.
-            limit (int, optional): Limit the number of samples in the dataset. Defaults to None.
-            use_cache (bool, optional): Whether to cache the dataset. Defaults to False.
-            log_level (int, optional): The log level. Defaults to logging.INFO.
-            numpy (bool, optional): Whether to convert data to numpy. Defaults to True.
-        """
+                log_level: int = logging.INFO) -> None:
+        
         self._dataset = dataset
         self._data_preprocessors = [] if data_preprocessors is None else data_preprocessors
         self._batch_size = batch_size
-        self._shuffle = shuffle
         self._epoch = initial_epoch
         self._augmentors = [] if augmentors is None else augmentors
         self._transformers = [] if transformers is None else transformers
         self._batch_postprocessors = [] if batch_postprocessors is None else batch_postprocessors
-        self._use_cache = use_cache
         self._step = 0
         self._cache = {}
         self._on_epoch_end_remove = []
-        self._numpy = numpy
 
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.setLevel(log_level)
@@ -51,17 +32,15 @@ class DataLoader:
             raise ValueError("Dataset must be iterable")
 
     def __len__(self):
-        """ Denotes the number of batches per epoch """
+        #number of batches per epoch
         return int(np.ceil(len(self._dataset) / self._batch_size))
 
     @property
     def augmentors(self) -> typing.List[Augmentor]:
-        """ Return augmentors """
         return self._augmentors
 
     @augmentors.setter
     def augmentors(self, augmentors: typing.List[Augmentor]):
-        """ Decorator for adding augmentors to the DataProvider """
         for augmentor in augmentors:
             if isinstance(augmentor, Augmentor):
                 if self._augmentors is not None:
@@ -74,12 +53,10 @@ class DataLoader:
 
     @property
     def transformers(self) -> typing.List[Transformer]:
-        """ Return transformers """
         return self._transformers
 
     @transformers.setter
     def transformers(self, transformers: typing.List[Transformer]):
-        """ Decorator for adding transformers to the DataProvider """
         for transformer in transformers:
             if isinstance(transformer, Transformer):
                 if self._transformers is not None:
@@ -92,19 +69,17 @@ class DataLoader:
 
     @property
     def epoch(self) -> int:
-        """ Return Current Epoch"""
         return self._epoch
 
     @property
     def step(self) -> int:
-        """ Return Current Step"""
         return self._step
 
     def on_epoch_end(self):
 
         self._epoch += 1 #increment epoch
-        if self._shuffle:#shuffle dataset
-            np.random.shuffle(self._dataset)
+        #shuffle dataset
+        np.random.shuffle(self._dataset)
 
         # Remove any invalide data
         for remove in self._on_epoch_end_remove:
@@ -159,7 +134,7 @@ class DataLoader:
 
     def process_data(self, batch_data):
         #Process data batch of data
-        if self._use_cache and batch_data[0] in self._cache and isinstance(batch_data[0], str):
+        if batch_data[0] in self._cache and isinstance(batch_data[0], str):
             data, annotation = copy.deepcopy(self._cache[batch_data[0]])
         else:
             data, annotation = batch_data
@@ -171,7 +146,7 @@ class DataLoader:
                 self._on_epoch_end_remove.append(batch_data)
                 return None, None
             
-            if self._use_cache and batch_data[0] not in self._cache:
+            if batch_data[0] not in self._cache:
                 self._cache[batch_data[0]] = (copy.deepcopy(data), copy.deepcopy(annotation))
 
         # Then augment, transform and postprocess the batch data
@@ -179,12 +154,11 @@ class DataLoader:
             for change in tools:
                 data, annotation = change(data, annotation)
 
-        if self._numpy:
-            try:
-                data = data.numpy()
-                annotation = annotation.numpy()
-            except:
-                pass
+        try:
+            data = data.numpy()
+            annotation = annotation.numpy()
+        except:
+            pass
 
         return data, annotation
 

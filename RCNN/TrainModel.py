@@ -1,49 +1,81 @@
-import typing 
 import os
 import torch
-import numpy as np
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as op
-from itertools import groupby
-from datetime import datetime
-import yaml
+import pandas as pd
+import callbacks
+import data
+import dataUtils as du
+import image
+import metric
+import modelArc
+import trainer
+import tqdm
 
-class ConfigFile:
-    def __init__(self, name: str, path: str, h: int = 32, w: int = 128, 
-                 bs: int = 64, lr: float = 0.002, epoch: int = 100):
-        
-        self.name = name
-        self.model_path = os.path.join(path, datetime.strftime(datetime.now(), "%Y%m%d%H%M"))
-        self.height = h
-        self.width = w
-        self.batch_size = bs
-        self.learning_rate = lr
-        self.train_epochs = epoch
-        self.max_text_length = 0
-        self.vocab = ""
+#Specify path to main database
+data_dir = ""
+model_path = ""
 
-    def save(self):
-        name = self.name
-        if self.model_path is None:
-            raise Exception("Model path is not specified")
+database, vocab, max_len = [], set(), 0
 
-        # create directory if not exist
-        if not os.path.exists(self.model_path):
-            os.makedirs(self.model_path)
+num_data = len(os.path.join(data_dir).replace("\\","/"))
 
-        with open(os.path.join(self.model_path, name), "w") as f:
-            yaml.dump(self.serialize(), f)
+print("dataset of" + num_data + "images")
 
-    def load(configs_path: str):
-        with open(configs_path, "r") as f:
-            configs = yaml.load(f, Loader=yaml.FullLoader)
+for id in range(0, num_data/2):
 
-        config = ConfigFile()
-        
-        for key, value in configs.items():
-            setattr(config, key, value)
+    img_path = os.path.join(data_dir, str(id), ".jpg").replace("\\","/")
 
-        return config
+    labels = ground_truths.split()
+    
+    if os.path.exists(img_path):
+        ground_truths = open(os.path.join(data_dir, str(id), ".txt").replace("\\","/")).readlines()
+        for line in tqdm(ground_truths):
+            if not line.isspace():
+                label = line.rstrip("\n")
+                database.append([img_path, label])
+                vocab.update(list(label))
+                max_len = max(max_len, len(label))
+    else:
+        print("image with index" + id + "do not exist")
 
+print("database, vocab, max_len, complete")
+    
+config = modelArc.ConfigFile(name = "CRNN1", path = model_path)
 
+config.vocab = "".join(vocab)
+config.max_txt_len = max_len
+config.save()
+
+dataset_loader = data.DataLoader(dataset = database, batch_size = config.batch_size, 
+                                 data_preprocessors = [image.ImageReader(image.ImageReader)], 
+                                 transformers = [du.ImageResizer(config.width, config.height), du.LabelIndexer(config.vocab), 
+                                                 du.LabelPadding(padding_value = len(config.vocab), max_word_len = max_len)])
+
+train_set, val_set = dataset_loader.split()
+
+train_set.augmentors = [
+    du.RandomBrightness(),
+    du.RandomErodeDilate(),
+    du.RandomSharpen(),
+    du.RandomRotate(angle=10),
+    ]
+
+model = modelArc.CRNN1(len(config.vocab))
+loss = trainer.CTCLoss(blank = len(config.vocab))
+optimizer = torch.optim.Adam(model.parameters, lr=config.lr)
+
+if torch.cuda.is_available():
+    model = model.cuda()
+    print("CUDA Enabled...Training On GPU")
+
+earlystop = callbacks.EarlyStopping(monitor = "val_cer", patience = 20, verbose = True)
+ckpt = callbacks.ModelCheckpoint(config.model_path + "/model.pt", monitor = "val_cer", verbose = True)
+tracker = callbacks.TensorBoard(config.model_path + "/logs")
+auto_lr = callbacks.ReduceLROnPlateau(monitor = "val_cer", factor=0.9, patience = 10, verbose = True)
+save_model = callbacks.Model2onnx(saved_model_path = model_path + "/model.pt", input_shape = (1, config.height, config.width, 3), verbose = True, metadata = {"vocab": config.vocab})
+
+train_struct = trainer.Trainer(model, optimizer, loss, metrics = [metric.CERMetric(config.vocab), metric.WERMetric(config.vocab)])
+
+train_struct.run(train_set, val_set, epochs=5, callbacks = [earlystop, ckpt, tracker, auto_lr, save_model])
+
+train_set.to_csv(os.path.join(config.model_path, "train.csv").replace("\\","/"))
+val_set.to_csv(os.path.join(config.model_path, "val.csv").replace("\\","/"))
