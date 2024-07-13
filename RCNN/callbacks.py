@@ -309,21 +309,20 @@ class Model2onnx(Callback):
             dynamic_axes = dynamic_axes,
             )
 
-
         if self.verbose:
             self.logger.info(f"Model saved to {self.onnx_model_path}")
 
-        if self.metadata and isinstance(self.metadata, dict):
+        # if self.metadata and isinstance(self.metadata, dict):
 
-            onnx_model = onnx.load(self.onnx_model_path)
-            # Add the metadata dictionary to the model's metadata_props attribute
-            for key, value in self.metadata.items():
-                meta = onnx_model.metadata_props.add()
-                meta.key = key
-                meta.value = str(value)
+        #     onnx_model = onnx.load(self.onnx_model_path)
+        #     # Add the metadata dictionary to the model's metadata_props attribute
+        #     for key, value in self.metadata.items():
+        #         meta = onnx_model.metadata_props.add()
+        #         meta.key = key
+        #         meta.value = str(value)
 
-            # Save the modified ONNX model
-            onnx.save(onnx_model, self.onnx_model_path)
+        #     # Save the modified ONNX model
+        #     onnx.save(onnx_model, self.onnx_model_path)
 
         # place model back to original device
         self.model.model.to(self.model.device)

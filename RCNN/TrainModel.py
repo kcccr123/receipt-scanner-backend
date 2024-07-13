@@ -9,48 +9,56 @@ import metric
 import modelArc
 import trainer
 import tqdm
+from config import ConfigFile
+from datetime import datetime
 
+
+#load data
 #Specify path to main database
-data_dir = ""
-model_path = ""
-
+data_dir = r"D:\photos\RCNN4\BBOXES"
+model_path = r"D:\Projects\reciept-scanner\RCNN\models"
 database, vocab, max_len = [], set(), 0
 
-num_data = len(os.path.join(data_dir).replace("\\","/"))
+largest_index = 492
 
-print("dataset of" + num_data + "images")
 
-for id in range(0, num_data/2):
+print("dataset of " + str(largest_index) + " images")
 
-    img_path = os.path.join(data_dir, str(id), ".jpg").replace("\\","/")
+for id in range(0, largest_index+1):
 
-    labels = ground_truths.split()
+    img_path = os.path.join(data_dir, str(id) + ".jpg").replace("\\","/")
     
     if os.path.exists(img_path):
-        ground_truths = open(os.path.join(data_dir, str(id), ".txt").replace("\\","/")).readlines()
-        for line in tqdm(ground_truths):
-            if not line.isspace():
+
+        with open(os.path.join(data_dir, str(id) + ".txt").replace("\\","/"), 'r') as file:
+            ground_truths = [line.strip() for line in file.readlines()]
+        
+        for line in ground_truths:
+            if not line.strip() == '':
                 label = line.rstrip("\n")
                 database.append([img_path, label])
                 vocab.update(list(label))
                 max_len = max(max_len, len(label))
     else:
-        print("image with index" + id + "do not exist")
+        print("image with index " + str(id) + " do not exist")
 
 print("database, vocab, max_len, complete")
-    
-config = modelArc.ConfigFile(name = "CRNN1", path = model_path)
 
-config.vocab = "".join(vocab)
-config.max_txt_len = max_len
-config.save()
 
-dataset_loader = data.DataLoader(dataset = database, batch_size = config.batch_size, 
-                                 data_preprocessors = [image.ImageReader(image.ImageReader)], 
-                                 transformers = [du.ImageResizer(config.width, config.height), du.LabelIndexer(config.vocab), 
-                                                 du.LabelPadding(padding_value = len(config.vocab), max_word_len = max_len)])
+#create data loaders
+model_config = ConfigFile(name = "CRNN1", path = model_path, lr=0.0003, bs=32)
 
-train_set, val_set = dataset_loader.split()
+model_config.vocab = "".join(vocab)
+model_config.max_txt_len = max_len
+model_config.save()
+
+dataset_loader = data.DataLoader(dataset = database, batch_size = model_config.batch_size, 
+                                 data_preprocessors = [image.ImageReader(image.CVImage)], 
+                                 transformers = [du.ImageResizer(model_config.width, model_config.height), du.LabelIndexer(model_config.vocab), 
+                                                 du.LabelPadding(padding_value = len(model_config.vocab), max_word_len = max_len)])#, du.ImageShowCV2()
+
+
+train_set, val_set = dataset_loader.split(split = 0.7)
 
 train_set.augmentors = [
     du.RandomBrightness(),
@@ -59,23 +67,27 @@ train_set.augmentors = [
     du.RandomRotate(angle=10),
     ]
 
-model = modelArc.CRNN1(len(config.vocab))
-loss = trainer.CTCLoss(blank = len(config.vocab))
-optimizer = torch.optim.Adam(model.parameters, lr=config.lr)
+#initialize model, optimizer, and loss
+model = modelArc.CRNN(len(model_config.vocab))
+loss = trainer.CTCLoss(blank = len(model_config.vocab))
+optimizer = torch.optim.Adam(model.parameters(), lr=model_config.lr)
 
 if torch.cuda.is_available():
     model = model.cuda()
     print("CUDA Enabled...Training On GPU")
 
-earlystop = callbacks.EarlyStopping(monitor = "val_cer", patience = 20, verbose = True)
-ckpt = callbacks.ModelCheckpoint(config.model_path + "/model.pt", monitor = "val_cer", verbose = True)
-tracker = callbacks.TensorBoard(config.model_path + "/logs")
-auto_lr = callbacks.ReduceLROnPlateau(monitor = "val_cer", factor=0.9, patience = 10, verbose = True)
-save_model = callbacks.Model2onnx(saved_model_path = model_path + "/model.pt", input_shape = (1, config.height, config.width, 3), verbose = True, metadata = {"vocab": config.vocab})
+#initialze callbacks and trainer
+earlystop = callbacks.EarlyStopping(monitor = "val_CER", patience = 10, verbose = True)
+ckpt = callbacks.ModelCheckpoint((model_config.model_path + "/model.pt").replace("\\","/"), monitor = "val_CER", verbose = True)
+tracker = callbacks.TensorBoard((model_config.model_path + "/logs").replace("\\","/"))
+auto_lr = callbacks.ReduceLROnPlateau(monitor = "val_CER", factor=0.9, patience = 10, verbose = True)
+save_model = callbacks.Model2onnx(saved_model_path = (os.path.join(model_path, datetime.strftime(datetime.now(), "%Y%m%d%H%M"),"model.pt").replace("\\","/")), input_shape = (1, model_config.height, model_config.width, 3), verbose = True, metadata = {"vocab": model_config.vocab})
 
-train_struct = trainer.Trainer(model, optimizer, loss, metrics = [metric.CERMetric(config.vocab), metric.WERMetric(config.vocab)])
 
-train_struct.run(train_set, val_set, epochs=5, callbacks = [earlystop, ckpt, tracker, auto_lr, save_model])
+train_struct = trainer.Trainer(model, optimizer, loss, metrics = [metric.CERMetric(model_config.vocab), metric.WERMetric(model_config.vocab)])
 
-train_set.to_csv(os.path.join(config.model_path, "train.csv").replace("\\","/"))
-val_set.to_csv(os.path.join(config.model_path, "val.csv").replace("\\","/"))
+#train
+train_struct.run(train_set, val_set, epochs=2, callbacks = [ckpt, tracker, auto_lr, save_model])#earlystop,
+
+train_set.to_csv(os.path.join(model_config.model_path, "train.csv").replace("\\","/"))
+val_set.to_csv(os.path.join(model_config.model_path, "val.csv").replace("\\","/"))
