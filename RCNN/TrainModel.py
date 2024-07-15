@@ -11,7 +11,7 @@ import trainer
 import tqdm
 from config import ConfigFile
 from datetime import datetime
-
+import json as js
 
 #load data
 #Specify path to main database
@@ -42,11 +42,40 @@ for id in range(0, largest_index+1):
     else:
         print("image with index " + str(id) + " do not exist")
 
+print("dataset1 done")
+
+#load second dataset
+data_path = r"D:\photos\SORIE"
+
+path = os.path.join(data_path, "train").replace("\\","/")
+i = 1
+while i <= 2:
+    with open(os.path.join(path, "metadata.jsonl").replace("\\","/"), 'r') as file:
+        for line in file:
+            
+            row = js.loads(line)
+            img_path = os.path.join(path, row.get("file_name")).replace("\\","/")
+            if os.path.exists(img_path):
+                label = row.get("text").rstrip("\n")
+                vocab.update(list(label))
+                max_len = max(max_len, len(label))
+                database.append([img_path, label])
+            else:
+                print("image with path " + str(img_path) + " do not exist")
+    if i == 1:
+        print("dataset2 done")
+    
+    i += 1
+    path = os.path.join(data_path, "test").replace("\\","/")
+
+print("dataset3 done")
+print(len(database))
+
 print("database, vocab, max_len, complete")
 
 
 #create data loaders
-model_config = ConfigFile(name = "CRNN1", path = model_path, lr=0.0003, bs=32)
+model_config = ConfigFile(name = "CRNN1", path = model_path, lr=0.008, bs=32)
 
 model_config.vocab = "".join(vocab)
 model_config.max_txt_len = max_len
@@ -77,7 +106,7 @@ if torch.cuda.is_available():
     print("CUDA Enabled...Training On GPU")
 
 #initialze callbacks and trainer
-earlystop = callbacks.EarlyStopping(monitor = "val_CER", patience = 10, verbose = True)
+earlystop = callbacks.EarlyStopping(monitor = "val_CER", patience = 50, verbose = True)
 ckpt = callbacks.ModelCheckpoint((model_config.model_path + "/model.pt").replace("\\","/"), monitor = "val_CER", verbose = True)
 tracker = callbacks.TensorBoard((model_config.model_path + "/logs").replace("\\","/"))
 auto_lr = callbacks.ReduceLROnPlateau(monitor = "val_CER", factor=0.9, patience = 10, verbose = True)
@@ -87,7 +116,7 @@ save_model = callbacks.Model2onnx(saved_model_path = (os.path.join(model_path, d
 train_struct = trainer.Trainer(model, optimizer, loss, metrics = [metric.CERMetric(model_config.vocab), metric.WERMetric(model_config.vocab)])
 
 #train
-train_struct.run(train_set, val_set, epochs=2, callbacks = [ckpt, tracker, auto_lr, save_model])#earlystop,
+train_struct.run(train_set, val_set, epochs=1000, callbacks = [ckpt, tracker, auto_lr, save_model, earlystop])
 
 train_set.to_csv(os.path.join(model_config.model_path, "train.csv").replace("\\","/"))
 val_set.to_csv(os.path.join(model_config.model_path, "val.csv").replace("\\","/"))

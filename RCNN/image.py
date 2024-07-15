@@ -6,6 +6,7 @@ from abc import ABC
 from abc import abstractmethod
 import numpy as np
 
+
 class Image(ABC):
     def __init__(self) -> None:
         super().__init__()
@@ -51,7 +52,7 @@ class CVImage(Image):
     init_successful = False
 
     def __init__(self, image: typing.Union[str, np.ndarray], method: int = cv2.IMREAD_COLOR,
-                path: str = "", color: str = "BGR") -> None:
+                path: str = "", color: str = "RGB") -> None:
         super().__init__()
         
         if isinstance(image, str):#image path
@@ -74,7 +75,7 @@ class CVImage(Image):
 
         if self._image is None:
             return None
-
+        
         self.init_successful = True
 
         # save width, height and channels
