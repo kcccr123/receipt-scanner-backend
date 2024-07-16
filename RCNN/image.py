@@ -5,6 +5,7 @@ import logging
 from abc import ABC
 from abc import abstractmethod
 import numpy as np
+import torch
 
 
 class Image(ABC):
@@ -75,7 +76,8 @@ class CVImage(Image):
 
         if self._image is None:
             return None
-        
+    
+
         self.init_successful = True
 
         # save width, height and channels

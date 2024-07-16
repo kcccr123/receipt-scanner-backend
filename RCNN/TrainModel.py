@@ -75,7 +75,7 @@ print("database, vocab, max_len, complete")
 
 
 #create data loaders
-model_config = ConfigFile(name = "CRNN1", path = model_path, lr=0.008, bs=32)
+model_config = ConfigFile(name = "CRNN1", path = model_path, lr=0.003, bs=64)
 
 model_config.vocab = "".join(vocab)
 model_config.max_txt_len = max_len
@@ -87,7 +87,7 @@ dataset_loader = data.DataLoader(dataset = database, batch_size = model_config.b
                                                  du.LabelPadding(padding_value = len(model_config.vocab), max_word_len = max_len)])#, du.ImageShowCV2()
 
 
-train_set, val_set = dataset_loader.split(split = 0.7)
+train_set, val_set = dataset_loader.split(split = 0.9)
 
 train_set.augmentors = [
     du.RandomBrightness(),

@@ -223,7 +223,7 @@ class Trainer:
 class CTCLoss(nn.Module):
     """ CTC loss for PyTorch
     """
-    def __init__(self, blank: int, reduction: str="mean", zero_infinity: bool=False):
+    def __init__(self, blank: int, reduction: str="mean", zero_infinity: bool=True):
         """ CTC loss for PyTorch
 
         Args:

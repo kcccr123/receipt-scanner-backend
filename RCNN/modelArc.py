@@ -55,7 +55,7 @@ class CRNN(nn.Module):
     
     def forward(self, input: torch.Tensor, h0=None, c0=None) -> torch.Tensor:
         #input_norm = input/255.0
-        input_norm = input_norm.permute(0, 3, 1, 2)
+        input_norm = input.permute(0, 3, 1, 2)
 
         x = F.relu(self.c0(input_norm))
         x = self.pool(x)

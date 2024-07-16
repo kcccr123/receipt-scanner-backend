@@ -93,6 +93,7 @@ class DataLoader:
             np.random.shuffle(self._dataset)
             
         train_data_loader, val_data_loader = copy.deepcopy(self), copy.deepcopy(self)
+        print("done coopying")
         train_data_loader._dataset = self._dataset[:int(len(self._dataset) * split)]
         val_data_loader._dataset = self._dataset[int(len(self._dataset) * split):]
 
