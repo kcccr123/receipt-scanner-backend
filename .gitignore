@@ -1,0 +1,23 @@
+# Ignore image files
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+*.tiff
+*.tif
+*.svg
+
+# Ignore ONNX model files
+*.onnx
+*.pt
+
+# Ignore other common media files (optional)
+*.mp4
+*.mkv
+*.avi
+*.mov
+*.mp3
+*.wav
+*.flac
+*.csv
