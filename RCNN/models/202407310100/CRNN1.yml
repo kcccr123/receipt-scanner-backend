@@ -1,0 +1,10 @@
+batch_size: 32
+height: 32
+lr: 0.0004
+max_txt_len: 69
+model_path: D:/Projects/reciept-scanner/RCNN/models/202407310100
+name: CRNN1
+train_epochs: 100
+vocab: "VS4:6-\"dX\\N^W(>#O0@<CR{5rB]3_T*/sh$L'a?!I=P1Qmei)%29D7EAU&nZJ YH8~,FMK+cG;}`|\xB7\
+  [l."
+width: 128
