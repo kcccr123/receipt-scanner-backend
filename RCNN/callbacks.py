@@ -281,48 +281,35 @@ class Model2onnx(Callback):
         
         # convert the model to ONNX format
         dummy_input = torch.randn((1,) + self.input_shape[1:])
-
-        # handle initial states for LSTM
-        lstm_hidden_size = self.model.model.lstm0.hidden_size
-        print(lstm_hidden_size)
-        h0 = torch.randn(2, 1, lstm_hidden_size)  # 2 for bidirectional
-        c0 = torch.randn(2, 1, lstm_hidden_size)  # 2 for bidirectional
         
-        dynamic_axes = {
-            "input": {0: "batch_size", 1: "sequence_length"},
-            "output": {0: "batch_size"},
-            "h0": {1: "batch_size"},
-            "c0": {1: "batch_size"}
-        }
-
         print(dummy_input.size())
         # Export the model
         torch.onnx.export(
             self.model.model,               
-            (dummy_input, h0, c0),                         
+            dummy_input,                         
             self.onnx_model_path,   
             export_params=self.export_params,        
             opset_version=self.opset_version,          
             do_constant_folding=self.do_constant_folding,  
-            input_names = self.input_names + ["h0", "c0"],   
+            input_names = self.input_names,   
             output_names = self.output_names, 
-            dynamic_axes = dynamic_axes,
+            dynamic_axes = self.dynamic_axes,
             )
 
         if self.verbose:
             self.logger.info(f"Model saved to {self.onnx_model_path}")
 
-        # if self.metadata and isinstance(self.metadata, dict):
+        if self.metadata and isinstance(self.metadata, dict):
 
-        #     onnx_model = onnx.load(self.onnx_model_path)
-        #     # Add the metadata dictionary to the model's metadata_props attribute
-        #     for key, value in self.metadata.items():
-        #         meta = onnx_model.metadata_props.add()
-        #         meta.key = key
-        #         meta.value = str(value)
+            onnx_model = onnx.load(self.onnx_model_path)
+            # Add the metadata dictionary to the model's metadata_props attribute
+            for key, value in self.metadata.items():
+                meta = onnx_model.metadata_props.add()
+                meta.key = key
+                meta.value = str(value)
 
-        #     # Save the modified ONNX model
-        #     onnx.save(onnx_model, self.onnx_model_path)
+            # Save the modified ONNX model
+            onnx.save(onnx_model, self.onnx_model_path)
 
         # place model back to original device
         self.model.model.to(self.model.device)
