@@ -15,11 +15,6 @@ def response():
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    # lets get this workign in a local server first before doing kubernetes
-    # have our react native app make a post request to this to run the model
-    # figure out how to send get photos via post request 
-    print(request)
-    print('help')
     if 'image' not in request.files:
         return jsonify({"error": "No file part"})
     image = request.files['image']
