@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 
-from utils import runYOLO
+from utils import runRecieptPrediction
 
 app = Flask(__name__)
 
@@ -20,8 +20,10 @@ def predict():
     image = request.files['image']
     if image.filename == '':
         return jsonify({"error": "No selected file"})
-    print(image)
-    result = runYOLO(image)
+    
+    # run prediction
+    result = runRecieptPrediction(image,'models/bestonnx.pt', 'models/model.onnx')
+    print(result)
     return jsonify(result)
     # after running img in run yolo send processed bounding boxes back
    
