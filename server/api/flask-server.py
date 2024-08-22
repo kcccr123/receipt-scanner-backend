@@ -22,7 +22,7 @@ def predict():
         return jsonify({"error": "No selected file"})
     
     # run prediction
-    result = runRecieptPrediction(image,'models/bestonnx.pt', 'models/model.onnx')
+    result = runRecieptPrediction(image,'models/best.pt', 'models/model.onnx')
     print(result)
     return jsonify(result)
     # after running img in run yolo send processed bounding boxes back
