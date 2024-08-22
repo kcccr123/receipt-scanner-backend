@@ -5,8 +5,8 @@ import numpy as np
 import cv2
 import onnxruntime as ort
 from itertools import groupby
-# import matplotlib.pyplot as plt
-# import os
+from transformers import BartTokenizer, BartForConditionalGeneration
+import torch
 
 def runYOLO(img, modelpath):
     # image is a numpy array, in BGR 
@@ -104,8 +104,30 @@ class inferencemode:
             results.append(text)
 
         return results #results is a [[item: str], [item: str], [item: str], [item: str]....]
-    
 
+# BART Loading
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+tokenizer = BartTokenizer.from_pretrained('facebook/bart-base')
+model = BartForConditionalGeneration.from_pretrained('facebook/bart-base')
+model.load_state_dict(torch.load("models/bart_model.pt", map_location=device))
+model.to(device)
+model.eval()
+length = 60
+
+def runBartPrediction(lst):
+    print(lst)
+    result = []
+    for item in lst:
+        input_text = " ".join(item)
+        # Tokenize the input
+        tokenized_input = tokenizer(input_text, return_tensors="pt", padding="max_length", max_length=length, truncation=True)
+
+        # Generate prediction
+        with torch.no_grad():
+            predicted_ids = model.generate(input_ids=tokenized_input["input_ids"], attention_mask=tokenized_input["attention_mask"], max_length=length)
+        predicted_text = tokenizer.decode(predicted_ids[0], skip_special_tokens=True)
+        result.append(predicted_text)
+    return result
 
 def runRecieptPrediction(image, yoloPath, rcnnPath):
     img_byte_arr = io.BytesIO()
@@ -120,9 +142,10 @@ def runRecieptPrediction(image, yoloPath, rcnnPath):
 
     # run rcnn to decipher words
     rcnn = inferencemode(rcnnPath)
-    results = rcnn.run(img, bounding_boxes)
-    if isinstance(results, np.ndarray):
+    rcnn_results = rcnn.run(img, bounding_boxes)
+    if isinstance(rcnn_results, np.ndarray):
             print('check')
-            results = results.tolist()
+            rcnn_results = rcnn_results.tolist()
+    results = runBartPrediction(rcnn_results)
     return results
 
