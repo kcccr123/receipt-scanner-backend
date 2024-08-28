@@ -10,6 +10,7 @@ import os
 from datetime import datetime
 
 csv_path = r"D:\photos\Words\walmart\home\sdf\marketing_sample_for_walmart_com-product_details__20200101_20200331__30k_data.csv"
+csv_path2 = r"D:\photos\Words\Restaurant\food.csv"
 save_dir = r"D:\photos\Words\walmart\home\sdf"
 model_dir = r"D:\Projects\reciept-scanner\BART"
 checkpt_dir = os.path.join(model_dir, datetime.strftime(datetime.now(), "%Y%m%d%H%M"), "bart_model.pt").replace("\\","/")
@@ -17,8 +18,8 @@ checkpt_dir = os.path.join(model_dir, datetime.strftime(datetime.now(), "%Y%m%d%
 
 def misspell(word):
     result = word
-    repeat = 1
-    if len(word) > 1:
+    repeat = 0
+    if len(word) > 3:
         op = random.choice(['rmv', 'rpl'])
         pos = random.randint(0, len(word) - 1)
         if op == 'rmv':
@@ -27,7 +28,9 @@ def misspell(word):
             result = word[:pos] + random.choice(string.ascii_letters) + word[pos+1:]
         
         if len(word) > 5:
-            repeat = 3
+            repeat = 1
+        elif len(word) >= 7:
+            repeat = 2
         
         i = 0
         while i < repeat:
@@ -41,38 +44,173 @@ def misspell(word):
         
     return result
 
+def shorten_word(word):
 
-def add_noise(name):
+    if len(word) <= 3:
+        return word
+    
+    chars_to_remove = max(1, len(word) // random.randint(3, 4))
+    
+    start_index = len(word) // 2 - chars_to_remove // 2
+    shortened_word = word[:start_index] + word[start_index + chars_to_remove:]
+    
+    return shortened_word
+
+
+def add_noise(name, price):
     words = name.split()
-
-    random.shuffle(words)
 
     noisy_words = []
     for word in words:
-        if random.random() < 0.5:
+        if random.random() <= 0.5:
             word = misspell(word)
-        if random.random() < 0.2:
-            word = ''.join([word, ''.join(random.choices(string.ascii_letters + string.digits + string.punctuation, k=random.randint(1, 5)))])
+        else:
+            word = shorten_word(word)
+        # if random.random() < 0.20:
+        #     word = ''.join([word, ''.join(random.choices(string.ascii_letters 
+        #                     + string.digits + string.punctuation, k=random.randint(1, 5)))])
         noisy_words.append(word)
+    
+    #add price
+    noisy_words.append(price)
+
+    random.shuffle(noisy_words)
+
+    noisy_words.append("##Price:")
 
     return ' '.join(noisy_words)
 
+def add_serial(name, price, trigger = "##PRICE:"):
+    words = name.split()
+
+    result = []
+    for word in words:
+        if random.random() <= 0.3:
+            if random.random() > 0.3:
+                length = random.randint(6, 12)
+                word = ' '.join([word, ''.join(random.choices(string.digits, k=length))])
+            else:
+                length = random.randint(4, 7)
+                word = ' '.join([word, ''.join(random.choices(string.ascii_letters + string.punctuation, k=length))])
+        result.append(word)
+
+        #add price
+    result.append(price)
+
+    random.shuffle(result)
+
+    result.append(trigger)
+
+    return ' '.join(result)
+
+
+def rand_price(extra=0):
+    min_price= 0.00
+    if random.random() < 0.1:
+        max_price = 9999.99+extra
+    elif random.random() <= 0.30:
+        max_price = 300+extra
+    else:
+        max_price = 100 +extra
+    price = round(random.uniform(min_price, max_price), 2)
+    return price
+
+def gen_totals(name, price, trigger):
+    input = add_serial(name, price, trigger=trigger)
+    return input
+    
+
 csv = pd.read_csv(csv_path)
 
+test = 0
+
 data_set = []
+print("Pulling first dataset")
 for i in range(0, csv.shape[0]):
-    grd_truth = csv.loc[i].at["Product Name"]
-    if len(grd_truth) < 61 and grd_truth != "":
-        variations = 12 #5 + random.choice(range(0,6))
+    item_name = csv.loc[i].at["Product Name"]
+    if len(item_name) < 61 and item_name != "":
+        test += 1
+        variations = 4 #5 + random.choice(range(0,6))
         id = 0;
         while id < variations:
             temp = {}
-            temp["input"] = add_noise(grd_truth)
-            temp["output"] = grd_truth
+            price = rand_price()
+            if(random.random() < 0.5):
+                input = add_noise(item_name, f"{price}")
+            else:
+                input = add_noise(item_name, f"${price}")
+            
+            temp["input"] = input
+            temp["output"] = f"{item_name} ##Price:{price}"
+            data_set.append(temp)
+            id += 1
+        
+        id = 0
+        while id < 2:
+            id += 1
+            temp = {}
+            if(random.random() < 0.5):
+                input = add_serial(item_name, f"{price}")
+            else:
+                input = add_serial(item_name, f"${price}")
+            temp["input"] = input
+            temp["output"] = f"{item_name} ##Price:{price}"
+            data_set.append(temp)
+
+print("Dataset is now at " + str(len(data_set)))
+print("Now pulling second dataset")
+
+csv = pd.read_csv(csv_path2)
+for i in range(0, csv.shape[0]):
+    item_name = csv.loc[i].at["Product Name"]
+    if len(item_name) < 61 and item_name != "":
+        test += 1
+        variations = 4 #5 + random.choice(range(0,6))
+        id = 0;
+        while id < variations:
+            temp = {}
+            price = rand_price()
+            if(random.random() < 0.5):
+                input = add_noise(item_name, f"{price}")
+            else:
+                input = add_noise(item_name, f"${price}")
+            
+            temp["input"] = input
+            temp["output"] = f"{item_name} ##Price:{price}"
             data_set.append(temp)
             id += 1
 
-print("dataset of " + str(len(data_set)))
+        id = 0
+        while id < 2:
+            id += 1
+            temp = {}
+            if(random.random() < 0.5):
+                input = add_serial(item_name, f"{price}")
+            else:
+                input = add_serial(item_name, f"${price}")
+            temp["input"] = input
+            temp["output"] = f"{item_name} ##Price:{price}"
+            data_set.append(temp)
+
+print("Dataset is now at " + str(len(data_set)))
+print("Adding in Total and Subtotals")
+num = 0
+while num < 150000:
+    temp = {}
+    num += 1
+    price = rand_price(200)
+    name = random.choice(["TOTAL","AMOUNT", "BALANCE TO PAY", "SUBTOTAL"])
+    if name == "SUBTOTAL":
+        trigger = "##SUBTOTAL:"
+    else:
+        trigger = "##TOTAL:"
+
+    temp["input"] = gen_totals(name, f'{price}', trigger)
+    temp["output"] = f"{name} {trigger}{price}"
+    data_set.append(temp)
+
+print("Dataset is now at " + str(len(data_set)))
+print(f"Total parent labels {test}")
 
 train, val = train_test_split(data_set, test_size=0.1)
 
@@ -82,7 +220,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #HYPERPARAMS-----------------------------------------------------------------------
 batch_size = 8
 learning_rate = 3e-5
-epochs = 8
+epochs = 5
 sentence_length = 60
 
 # load model
@@ -95,10 +233,10 @@ if torch.cuda.is_available():
 
 # create tokens for each data input
 # tokenize_function input is (data set input, model tokenizer, and max length of string)
-
+print("tokenizing")
 tokenized_train = [tokenize_function(i, tokenizer, sentence_length) for i in train]
 tokenized_val = [tokenize_function(i, tokenizer, sentence_length) for i in val]
-
+print("done tokenizing")
 # create training set
 train_dataset = TextDataset(tokenized_train)
 train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
