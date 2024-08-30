@@ -38,9 +38,10 @@ while i <= 2:
             img_path = os.path.join(path, row.get("file_name")).replace("\\","/")
             if os.path.exists(img_path):
                 label = row.get("text").rstrip("\n")
-                vocab.update(list(label))
-                max_len = max(max_len, len(label))
-                database.append([img_path, label])
+                if len(label.split(' ')) <= 3: 
+                    vocab.update(list(label))
+                    max_len = max(max_len, len(label))
+                    database.append([img_path, label])
             else:
                 print("image with path " + str(img_path) + " do not exist")
     if i == 1:
@@ -59,9 +60,10 @@ with open(os.path.join(path, "testing.jsonl").replace("\\","/"), 'r') as file:
         img_path = os.path.join(path, row.get("file_name")).replace("\\","/")
         if os.path.exists(img_path):
             label = row.get("text").rstrip("\n")
-            vocab.update(list(label))
-            max_len = max(max_len, len(label))
-            database.append([img_path, label])
+            if len(label.split(' ')) <= 3: 
+                vocab.update(list(label))
+                max_len = max(max_len, len(label))
+                database.append([img_path, label])
         else:
             print("image with path " + str(img_path) + " do not exist")
 print("dataset2 done")
@@ -204,7 +206,7 @@ class CVImage(image.Image):
     def __call__(self) -> np.ndarray:
         return self._image
 #create data loaders
-model_config = ConfigFile(name = "CRNNGREY", path = model_path, lr=0.0004, bs=32)
+model_config = ConfigFile(name = "CRNNGREY", path = model_path, lr=0.0004, bs=16)
 
 model_config.vocab = "".join(vocab)
 model_config.max_txt_len = max_len
@@ -213,10 +215,10 @@ model_config.save()
 dataset_loader = data.DataLoader(dataset = database, batch_size = model_config.batch_size, 
                                  data_preprocessors = [image.ImageReader(CVImage)], 
                                  transformers = [du.ImageResizer(model_config.width, model_config.height), du.LabelIndexer(model_config.vocab), 
-                                                 du.LabelPadding(padding_value = len(model_config.vocab), max_word_len = max_len)])# du.ImageShowCV2()
+                                                 du.LabelPadding(padding_value = len(model_config.vocab), max_word_len = max_len),du.ImageShowCV2()])# 
 
 
-train_set, val_set = dataset_loader.split(split = 0.9)
+train_set, val_set = dataset_loader.split(split = 0.85)
 
 train_set.augmentors = [
     # du.RandomBrightness(),
@@ -235,7 +237,7 @@ if torch.cuda.is_available():
     print("CUDA Enabled...Training On GPU")
 
 #initialze callbacks and trainer
-earlystop = callbacks.EarlyStopping(monitor = "val_CER", patience = 40, verbose = True)
+earlystop = callbacks.EarlyStopping(monitor = "val_CER", patience = 30, verbose = True)
 ckpt = callbacks.ModelCheckpoint((model_config.model_path + "/model.pt").replace("\\","/"), monitor = "val_CER", verbose = True)
 tracker = callbacks.TensorBoard((model_config.model_path + "/logs").replace("\\","/"))
 auto_lr = callbacks.ReduceLROnPlateau(monitor = "val_CER", factor=0.9, patience = 10, verbose = True)
@@ -244,7 +246,7 @@ save_model = callbacks.Model2onnx(saved_model_path = (os.path.join(model_path, d
 train_struct = trainer.Trainer(model, optimizer, loss, metrics = [metric.CERMetric(model_config.vocab), metric.WERMetric(model_config.vocab)])
 
 #train
-train_struct.run(train_set, val_set, epochs=2, callbacks = [ckpt, tracker, auto_lr, save_model, earlystop])
+train_struct.run(train_set, val_set, epochs=1000, callbacks = [ckpt, tracker, auto_lr, save_model, earlystop])
 
 train_set.to_csv(os.path.join(model_config.model_path, "train.csv").replace("\\","/"))
 val_set.to_csv(os.path.join(model_config.model_path, "val.csv").replace("\\","/"))
