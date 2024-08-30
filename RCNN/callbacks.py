@@ -8,7 +8,6 @@ from datetime import datetime
 import torch.onnx
 from torch.utils.tensorboard import SummaryWriter
 import logging
-
 #base class
 class Callback:
     def __init__(
