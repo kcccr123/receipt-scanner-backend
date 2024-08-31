@@ -206,7 +206,7 @@ class CVImage(image.Image):
     def __call__(self) -> np.ndarray:
         return self._image
 #create data loaders
-model_config = ConfigFile(name = "CRNNGREY", path = model_path, lr=0.0004, bs=16)
+model_config = ConfigFile(name = "CRNNGREY", path = model_path, lr=0.0003, bs=16)
 
 model_config.vocab = "".join(vocab)
 model_config.max_txt_len = max_len
@@ -215,10 +215,10 @@ model_config.save()
 dataset_loader = data.DataLoader(dataset = database, batch_size = model_config.batch_size, 
                                  data_preprocessors = [image.ImageReader(CVImage)], 
                                  transformers = [du.ImageResizer(model_config.width, model_config.height), du.LabelIndexer(model_config.vocab), 
-                                                 du.LabelPadding(padding_value = len(model_config.vocab), max_word_len = max_len),du.ImageShowCV2()])# 
+                                                 du.LabelPadding(padding_value = len(model_config.vocab), max_word_len = max_len)])# ,du.ImageShowCV2()
 
 
-train_set, val_set = dataset_loader.split(split = 0.85)
+train_set, val_set = dataset_loader.split(split = 0.9)
 
 train_set.augmentors = [
     # du.RandomBrightness(),
