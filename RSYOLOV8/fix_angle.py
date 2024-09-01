@@ -25,10 +25,8 @@ def approximate_contour(contour):
 def get_receipt_contour(contours):    
     for c in contours:
         approx = approximate_contour(c)
-        print(len(approx))
         # four points = rectangle
         if len(approx) == 4:
-            print(f"taken:{len(approx)}")
             return approx
 
 def wrap_perspective(img, rect):
@@ -96,6 +94,10 @@ def fix_angle(image):
     largest_contours = sorted(filtered_contours, key = cv2.contourArea, reverse = True)[:10]
     receipt_contour = get_receipt_contour(largest_contours)
 
-    result = wrap_perspective(original.copy(), contour_to_rect(receipt_contour))
-    greyscale_output = bw_scanner(result)
+    greyscale_output = np.array([])
+    try:
+        result = wrap_perspective(original.copy(), contour_to_rect(receipt_contour))
+        greyscale_output = bw_scanner(result)
+    except:
+        print("Receipt not identified")
     return greyscale_output
