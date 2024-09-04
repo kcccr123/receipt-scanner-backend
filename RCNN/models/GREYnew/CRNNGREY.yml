@@ -1,0 +1,11 @@
+batch_size: 16
+height: 32
+lr: 0.0003
+max_txt_len: 40
+mean: 198.87491
+model_path: D:/Projects/reciept-scanner/RCNN/models/202409031348
+name: CRNNGREY
+std: 105.648796
+train_epochs: 100
+vocab: "J5!+MF;\xB7{&I<'(*K 9UAENC-O@0#4YXZW%V.:8^1/H3,2$\"6=_\\>GQ)7]l}`LS~|T?PB[DR"
+width: 128

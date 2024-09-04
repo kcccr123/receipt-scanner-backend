@@ -3,7 +3,7 @@ import yaml
 from datetime import datetime
 
 class ConfigFile:
-    def __init__(self, name: str, path: str, h: int = 32, w: int = 128, 
+    def __init__(self, name: str, path: str, mean: float, std: float, h: int = 32, w: int = 128, 
                  bs: int = 64, lr: float = 0.002, epoch: int = 100):
         
         self.name = name
@@ -15,6 +15,8 @@ class ConfigFile:
         self.train_epochs = epoch
         self.max_txt_len = 0
         self.vocab = ""
+        self.mean = mean
+        self.std = std
 
     def to_dict(self):
         return {
@@ -26,7 +28,9 @@ class ConfigFile:
             'lr': self.lr,
             'train_epochs': self.train_epochs,
             'max_txt_len': self.max_txt_len,
-            'vocab': self.vocab
+            'vocab': self.vocab,
+            'mean': self.mean,
+            'std': self.std
         }
 
     def save(self):

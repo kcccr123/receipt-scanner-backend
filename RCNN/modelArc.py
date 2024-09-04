@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 
 class resblk (nn.Module):
-    def __init__(self, ichannel, ochannel, stride = 1, dropout = 0.3, skip = True):
+    def __init__(self, ichannel, ochannel, stride = 1, dropout = 0.0, skip = True):
         super().__init__()
         self.dropout = nn.Dropout(dropout)
         self.c1 = nn.Sequential(nn.Conv2d(ichannel, ochannel, 3, stride, 1),
@@ -134,18 +134,18 @@ class CRNNGREY(nn.Module):
         self.dropout = nn.Dropout(0.3)
         self.pool = nn.MaxPool2d(kernel_size = 2, stride = 2, padding = 1)
         
-        self.c0 = nn.Conv2d(1, 16, 3)
-        self.r1 = resblk(16, 16)
+        self.c0 = nn.Conv2d(1, 8, 3)
+        self.r1 = resblk(8, 16, dropout = 0.3)
         self.r2 = resblk(16, 16, skip = False)
-        self.r3 = resblk(16, 32, stride = 2)
+        self.r3 = resblk(16, 32, dropout=0.3,stride = 2)
         self.r4 = resblk(32, 32, skip = False)
-        self.r5 = resblk(32, 64, stride = 2)
+        self.r5 = resblk(32, 64, dropout = 0.3, stride = 2)
         self.r6 = resblk(64, 64)
         self.r7 = resblk(64, 64)
         self.r8 = resblk(64, 64, skip = False)
-        self.r9 = resblk(64, 64, skip = False)
+        self.r9 = resblk(64, 64, skip = False, dropout = 0.3)
 
-        self.lstm0 = nn.LSTM(64, 128, bidirectional = True, num_layers = 1, batch_first = True)
+        self.lstm0 = nn.GRU(64, 128, bidirectional = True, num_layers = 1, batch_first = True)
         self.fc0 = nn.Linear(128*2, max_chars + 1)
     
     def forward(self, input: torch.Tensor) -> torch.Tensor:

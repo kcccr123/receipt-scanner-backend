@@ -14,10 +14,20 @@ import cv2
 import typing
 from skimage.filters import threshold_local
 
-def bw_scanner(image):
+def preprocess_image(image):
+    # Load the image using OpenCV
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    T = threshold_local(gray, 21, offset = 5, method = "gaussian")
-    return (gray > T).astype("uint8") * 255
+    blur = cv2.GaussianBlur(gray, (3,3), 0)
+
+    # thresh = cv2.adaptiveThreshold(blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 2)
+    thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+    
+    # Morph open to remove noise and invert image
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
+    opening = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=1)
+    invert = 255 - opening
+
+    return invert
 
 #Specify path to main database
 data_dir = r"D:\photos\RCNN4\BBOXES"
@@ -38,7 +48,7 @@ while i <= 2:
             img_path = os.path.join(path, row.get("file_name")).replace("\\","/")
             if os.path.exists(img_path):
                 label = row.get("text").rstrip("\n")
-                if len(label.split(' ')) <= 3: 
+                if len(label.split(' ')) <= 2: 
                     vocab.update(list(label))
                     max_len = max(max_len, len(label))
                     database.append([img_path, label])
@@ -60,7 +70,7 @@ with open(os.path.join(path, "testing.jsonl").replace("\\","/"), 'r') as file:
         img_path = os.path.join(path, row.get("file_name")).replace("\\","/")
         if os.path.exists(img_path):
             label = row.get("text").rstrip("\n")
-            if len(label.split(' ')) <= 3: 
+            if len(label.split(' ')) <= 2: 
                 vocab.update(list(label))
                 max_len = max(max_len, len(label))
                 database.append([img_path, label])
@@ -81,7 +91,7 @@ channel_sum_squared = torch.tensor([0.0])
 for pair in database:
     image_path = pair[0]
     image = cv2.imread(image_path)
-    img = bw_scanner(image)
+    img = preprocess_image(image)
 
     if img is None:
         print(f"Warning: Could not read image at {image_path}. Skipping.")
@@ -117,7 +127,7 @@ class CVImage(image.Image):
             self._image = cv2.imread(image)
             self.path = image
             self.color = "GREY"
-            self._image = bw_scanner(self._image)
+            self._image = preprocess_image(self._image)
 
         elif isinstance(image, np.ndarray):
             self._image = image
@@ -206,7 +216,7 @@ class CVImage(image.Image):
     def __call__(self) -> np.ndarray:
         return self._image
 #create data loaders
-model_config = ConfigFile(name = "CRNNGREY", path = model_path, lr=0.0003, bs=16)
+model_config = ConfigFile(name = "CRNNGREY", path = model_path, lr=0.0003, bs=16, std= std.numpy(), mean = mean.numpy())
 
 model_config.vocab = "".join(vocab)
 model_config.max_txt_len = max_len
@@ -218,7 +228,7 @@ dataset_loader = data.DataLoader(dataset = database, batch_size = model_config.b
                                                  du.LabelPadding(padding_value = len(model_config.vocab), max_word_len = max_len)])# ,du.ImageShowCV2()
 
 
-train_set, val_set = dataset_loader.split(split = 0.9)
+train_set, val_set = dataset_loader.split(split = 0.83)
 
 train_set.augmentors = [
     # du.RandomBrightness(),
