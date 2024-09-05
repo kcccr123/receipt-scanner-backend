@@ -30,6 +30,116 @@ class resblk (nn.Module):
         output = self.dropout(output)
         
         return output
+    
+class CRNNgreyNEW(nn.Module):
+    def __init__(self, max_chars: int):
+        super(CRNNgreyNEW, self).__init__()
+        self.name = CRNNgreyNEW
+        
+        self.dropout = nn.Dropout(0.25)
+        self.pool = nn.MaxPool2d(kernel_size = 2, stride = 2, padding = 1)
+        # self.avg_pool = nn.AvgPool2d(kernel_size=2, stride=2)
+        
+        self.c0 = nn.Conv2d(1, 8, 7)
+        self.c1 = nn.Conv2d(8, 16, 5)
+        # resblk(8, 16, skip = False)
+        self.r2 = resblk(16, 16, skip = False)
+        self.r3 = resblk(16, 32, stride = 2)
+        self.r4 = resblk(32, 32, skip = False, dropout = 0.2)
+        self.r5 = resblk(32, 64, stride = 2)
+        self.r6 = resblk(64, 64)
+        self.r7 = resblk(64, 64, skip = False, dropout = 0.25)
+        self.r8 = resblk(64, 128, stride = 2)
+        self.r9 = resblk(128, 128)
+        self.r10 = resblk(128, 128, skip = False, dropout = 0.3)
+        self.r11 = resblk(128, 128, skip = False)
+
+        self.lstm0 = nn.LSTM(128, 256, bidirectional = True, num_layers = 1, batch_first = True)
+        self.fc0 = nn.Linear(256*2, max_chars + 1)
+    
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        processed = input/255.0
+
+        if input.dim() == 3:  # Check if input is missing channel dimension
+            input = input.unsqueeze(1)
+
+        x = F.relu(self.c0(processed))
+        x = F.relu(self.c1(x))
+        x = self.pool(x)
+        x = self.r2(x)
+        x = self.r3(x)
+        x = self.r4(x)
+        x = self.r5(x)
+        x = self.r6(x)
+        x = self.r7(x)
+        x = self.r8(x)
+        x = self.r9(x)
+        x = self.r10(x)
+        x = self.r11(x)
+        x = x.reshape(x.size(0), -1, x.size(1))
+
+        x, _ = self.lstm0(x)
+
+        x = self.dropout(x)
+        x = self.fc0(x)
+        x = F.log_softmax(x, 2)
+
+        return x
+
+class CRNNgreyBIG(nn.Module):
+    def __init__(self, max_chars: int):
+        super(CRNNgreyBIG, self).__init__()
+        self.name = CRNNgreyBIG
+        
+        self.dropout = nn.Dropout(0.25)
+        self.pool = nn.MaxPool2d(kernel_size = 2, stride = 2, padding = 1)
+        # self.avg_pool = nn.AvgPool2d(kernel_size=2, stride=2)
+        
+        self.c0 = nn.Conv2d(1, 8, 7)
+        self.c1 = nn.Conv2d(8, 16, 5)
+        # resblk(8, 16, skip = False)
+        self.r2 = resblk(16, 16, skip = False)
+        self.r3 = resblk(16, 32, stride = 2)
+        self.r4 = resblk(32, 32, skip = False, dropout = 0.2)
+        self.r5 = resblk(32, 64, stride = 2)
+        self.r6 = resblk(64, 64)
+        self.r7 = resblk(64, 64, dropout = 0.25)
+        self.r8 = resblk(64, 64, skip = False, dropout = 0.25)
+        self.r9 = resblk(64, 128, stride = 2)
+        self.r10 = resblk(128, 128)
+        self.r11 = resblk(128, 128, skip = False, dropout = 0.3)
+        self.r12 = resblk(128, 128, skip = False)
+
+        self.lstm0 = nn.LSTM(128, 256, bidirectional = True, num_layers = 1, batch_first = True)
+        self.fc0 = nn.Linear(256*2, max_chars + 1)
+    
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        if input.dim() == 3:  # Check if input is missing channel dimension
+            input = input.unsqueeze(1)
+
+        x = F.relu(self.c0(input))
+        x = F.relu(self.c1(x))
+        x = self.pool(x)
+        x = self.r2(x)
+        x = self.r3(x)
+        x = self.r4(x)
+        x = self.r5(x)
+        x = self.r6(x)
+        x = self.r7(x)
+        x = self.r8(x)
+        x = self.r9(x)
+        x = self.r10(x)
+        x = self.r11(x)
+        x = self.r12(x)
+        x = x.reshape(x.size(0), -1, x.size(1))
+
+        x, _ = self.lstm0(x)
+
+        x = self.dropout(x)
+        x = self.fc0(x)
+        x = F.log_softmax(x, 2)
+
+        return x
 
 class CRNN(nn.Module):
     def __init__(self, max_chars: int):
@@ -172,5 +282,4 @@ class CRNNGREY(nn.Module):
         x = F.log_softmax(x, 2)
 
         return x
-
 

@@ -18,16 +18,15 @@ def preprocess_image(image):
     # Load the image using OpenCV
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     blur = cv2.GaussianBlur(gray, (3,3), 0)
-
-    # thresh = cv2.adaptiveThreshold(blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 2)
-    thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+    thresh = cv2.adaptiveThreshold(blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 15, 4)
+    # thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
     
     # Morph open to remove noise and invert image
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
     opening = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=1)
-    invert = 255 - opening
+    # invert = 255 - opening
 
-    return invert
+    return opening
 
 #Specify path to main database
 data_dir = r"D:\photos\RCNN4\BBOXES"
@@ -48,7 +47,7 @@ while i <= 2:
             img_path = os.path.join(path, row.get("file_name")).replace("\\","/")
             if os.path.exists(img_path):
                 label = row.get("text").rstrip("\n")
-                if len(label.split(' ')) <= 2: 
+                if len(label.split(' ')) <= 4 and label != "***":
                     vocab.update(list(label))
                     max_len = max(max_len, len(label))
                     database.append([img_path, label])
@@ -70,7 +69,7 @@ with open(os.path.join(path, "testing.jsonl").replace("\\","/"), 'r') as file:
         img_path = os.path.join(path, row.get("file_name")).replace("\\","/")
         if os.path.exists(img_path):
             label = row.get("text").rstrip("\n")
-            if len(label.split(' ')) <= 2: 
+            if len(label.split(' ')) <= 4 and label != "***":
                 vocab.update(list(label))
                 max_len = max(max_len, len(label))
                 database.append([img_path, label])
@@ -84,31 +83,31 @@ print("database, vocab, max_len, complete")
 #normalize images and load them as an np array
 
 #get the mean and std of dataset
-num_pixels = 0
-channel_sum = torch.tensor([0.0])
-channel_sum_squared = torch.tensor([0.0])
+# num_pixels = 0
+# channel_sum = torch.tensor([0.0])
+# channel_sum_squared = torch.tensor([0.0])
 
-for pair in database:
-    image_path = pair[0]
-    image = cv2.imread(image_path)
-    img = preprocess_image(image)
+# for pair in database:
+#     image_path = pair[0]
+#     image = cv2.imread(image_path)
+#     img = preprocess_image(image)
 
-    if img is None:
-        print(f"Warning: Could not read image at {image_path}. Skipping.")
-        continue
+#     if img is None:
+#         print(f"Warning: Could not read image at {image_path}. Skipping.")
+#         continue
     
-    height, width = img.shape
+#     height, width = img.shape
 
-    num_pixels += height * width
+#     num_pixels += height * width
 
-    channel_sum += torch.tensor(img.sum(), dtype=torch.float64)
-    channel_sum_squared += torch.tensor((img.astype(np.float64) ** 2).sum(), dtype=torch.float64)
+#     channel_sum += torch.tensor(img.sum(), dtype=torch.float64)
+#     channel_sum_squared += torch.tensor((img.astype(np.float64) ** 2).sum(), dtype=torch.float64)
 
-mean = channel_sum/num_pixels
-variance = (channel_sum_squared / num_pixels) - (mean**2)
-std = torch.sqrt(variance)
-print("Mean:", mean.numpy())
-print("Standard Deviation:", std.numpy())
+# mean = channel_sum/num_pixels
+# variance = (channel_sum_squared / num_pixels) - (mean**2)
+# std = torch.sqrt(variance)
+# print("Mean:", mean.numpy())
+# print("Standard Deviation:", std.numpy())
 
 import image
 class CVImage(image.Image):
@@ -117,7 +116,7 @@ class CVImage(image.Image):
     init_successful = False
 
     def __init__(self, image: typing.Union[str, np.ndarray], method: int = cv2.IMREAD_COLOR,
-                path: str = "", color: str = "RGB", mean: torch.tensor = mean, std: torch.tensor = std) -> None:
+                path: str = "", color: str = "RGB") -> None:
         super().__init__()
         
         if isinstance(image, str):#image path
@@ -142,12 +141,6 @@ class CVImage(image.Image):
         if self._image is None:
             return None
         
-        #start normalizing image
-        if mean != None and std != None:
-            img_tensor = torch.tensor(self._image, dtype=torch.float32)
-            norm_img = (img_tensor - mean) / std
-            self._image = norm_img.numpy()
-
         self.init_successful = True
 
         # save width, height and channels
@@ -216,7 +209,7 @@ class CVImage(image.Image):
     def __call__(self) -> np.ndarray:
         return self._image
 #create data loaders
-model_config = ConfigFile(name = "CRNNGREY", path = model_path, lr=0.0003, bs=16, std= std.numpy(), mean = mean.numpy())
+model_config = ConfigFile(name = "CRNNGREY", path = model_path, lr=0.001, bs=16)
 
 model_config.vocab = "".join(vocab)
 model_config.max_txt_len = max_len
@@ -228,17 +221,17 @@ dataset_loader = data.DataLoader(dataset = database, batch_size = model_config.b
                                                  du.LabelPadding(padding_value = len(model_config.vocab), max_word_len = max_len)])# ,du.ImageShowCV2()
 
 
-train_set, val_set = dataset_loader.split(split = 0.83)
+train_set, val_set = dataset_loader.split(split = 0.9)
 
 train_set.augmentors = [
     # du.RandomBrightness(),
     du.RandomErodeDilate(),
     du.RandomSharpen(),
-    du.RandomRotate(angle=10),
+    du.RandomRotate(angle=15),
     ]
 
 #initialize model, optimizer, and loss
-model = modelArc.CRNNGREY(len(model_config.vocab))
+model = modelArc.CRNNgreyNEW(len(model_config.vocab))
 loss = trainer.CTCLoss(blank = len(model_config.vocab))
 optimizer = torch.optim.Adam(model.parameters(), lr=model_config.lr)
 
@@ -247,7 +240,7 @@ if torch.cuda.is_available():
     print("CUDA Enabled...Training On GPU")
 
 #initialze callbacks and trainer
-earlystop = callbacks.EarlyStopping(monitor = "val_CER", patience = 30, verbose = True)
+earlystop = callbacks.EarlyStopping(monitor = "val_CER", patience = 45, verbose = True)
 ckpt = callbacks.ModelCheckpoint((model_config.model_path + "/model.pt").replace("\\","/"), monitor = "val_CER", verbose = True)
 tracker = callbacks.TensorBoard((model_config.model_path + "/logs").replace("\\","/"))
 auto_lr = callbacks.ReduceLROnPlateau(monitor = "val_CER", factor=0.9, patience = 10, verbose = True)
