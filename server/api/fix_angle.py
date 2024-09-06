@@ -95,9 +95,10 @@ def fix_angle(image):
     receipt_contour = get_receipt_contour(largest_contours)
 
     greyscale_output = np.array([])
+    colored_output = np.array([])
     try:
-        result = wrap_perspective(original.copy(), contour_to_rect(receipt_contour))
-        greyscale_output = bw_scanner(result)
+        colored_output = wrap_perspective(original.copy(), contour_to_rect(receipt_contour))
+        greyscale_output = bw_scanner(colored_output)
     except:
         print("Receipt not identified")
-    return greyscale_output
+    return greyscale_output, colored_output

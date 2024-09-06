@@ -19,10 +19,10 @@ def runYOLO(img, modelpath):
     model = YOLO(modelpath)
     
     # Perform inference
-    results = model(img, conf=0.5, iou=0.5)
+    result = model(img, conf=0.3, iou=0.5)[0]
     
     # Get annotated image with detections
-    annotated_img = results[0].plot()
+    annotated_img = result.plot()
 
     # Save the annotated image if necessary
     if os.path.exists('annotated_image.jpg'):
@@ -39,17 +39,21 @@ def runYOLO(img, modelpath):
     plt.show()
 
     bounding_boxes = []
-    
-    # Extract the bounding box coordinates
-    for result in results:
-        boxes = result.boxes.cpu().numpy()
+    labels = []
 
-        # Convert into cv2 rectangle format
-        for xyxy in boxes.xyxy:
-            bounding_boxes.append([int(coord) for coord in xyxy.tolist()])
+    # Extract the bounding box coordinates
+    class_names = model.names
+    for c in result.boxes.cls:
+        labels.append(class_names[int(c)])
+
+    # Convert into cv2 rectangle format
+    boxes = result.boxes.cpu().numpy()
+    for xyxy in boxes.xyxy:
+        bounding_boxes.append([int(coord) for coord in xyxy.tolist()])
     
     print(bounding_boxes, "bounding boxes")
-    return bounding_boxes
+    print(labels, "labels")
+    return bounding_boxes, labels
 
 
 
@@ -106,7 +110,7 @@ class inferencemode:
         results = []
         for b in bboxes:
 
-            grey_image = b
+            grey_image = self.preprocess(b)
             img_height, img_width = grey_image.shape[:2]
 
             minWidth = int(img_width * 0.05)
@@ -223,21 +227,28 @@ def runRecieptPrediction(image, yoloPath, rcnnPath):
 
     #some moderate issue here
 
-    fixed_image = fix_angle(img)
+    fixed_image, fixed_image_coloured = fix_angle(img)
 
     if len(fixed_image) == 0:
         return (400, {"error": "Receipt is badly aligned, please try again."})
+    
 
     # run yolo model to get bounding boxes
-    bounding_boxes = runYOLO(fixed_image, yoloPath)
+    bounding_boxes, labels = runYOLO(fixed_image, yoloPath)
         
     
     # run rcnn to decipher words
     rcnn = inferencemode(rcnnPath)
-    rcnn_results = rcnn.run(fixed_image, bounding_boxes)
+    rcnn_results = rcnn.run(cv2.cvtColor(fixed_image_coloured, cv2.COLOR_BGR2GRAY), bounding_boxes)
     if isinstance(rcnn_results, np.ndarray):
-            print('check')
-            rcnn_results = rcnn_results.tolist()
+        print('check')
+        rcnn_results = rcnn_results.tolist()
+
+    conversion = {'item': "##PRICE:", 'subtotal': '##SUBTOTAL:', 'total': '##TOTAL:'}
+
+    for i in range(len(rcnn_results)):
+        rcnn_results[i].append(conversion[labels[i]])
+    
     bart_results = runBartPrediction(rcnn_results)
     results = processPredictionForResponse(bart_results)
     return (500, results)
