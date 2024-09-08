@@ -9,10 +9,10 @@ import pandas as pd
 import os
 from datetime import datetime
 
-csv_path = r"C:\Users\MSI\Documents\marketing_sample_for_walmart_com-product_details__20200101_20200331__30k_data.csv"
-csv_path2 = r"C:\Users\MSI\Documents\food.csv"
-save_dir = r"D:\RecieptScanner\reciept-scanner\BART"
-model_dir = r"D:\RecieptScanner\reciept-scanner\BART"
+csv_path = r"D:\photos\Words\walmart\home\sdf\marketing_sample_for_walmart_com-product_details__20200101_20200331__30k_data.csv"
+csv_path2 = r"D:\photos\Words\Restaurant\food.csv"
+save_dir = r"D:\photos\Words\walmart\home\sdf"
+model_dir = r"D:\Projects\reciept-scanner\BART"
 checkpt_dir = os.path.join(model_dir, datetime.strftime(datetime.now(), "%Y%m%d%H%M"), "bart_model.pt").replace("\\","/")
 
 
@@ -165,12 +165,12 @@ for i in range(0, csv.shape[0]):
     item_name = csv.loc[i].at["Product Name"]
     if len(item_name) < 61 and item_name != "":
         test += 1
-        variations = 7 #5 + random.choice(range(0,6))
-        id = 0
+        variations = 4 #5 + random.choice(range(0,6))
+        id = 0;
         while id < variations:
             temp = {}
             price = rand_price()
-            if(random.random() < 0.7):
+            if(random.random() < 0.5):
                 input = add_noise(item_name, f"{price}")
             else:
                 input = add_noise(item_name, f"${price}")
@@ -179,7 +179,6 @@ for i in range(0, csv.shape[0]):
             temp["output"] = f"{item_name} ##Price:{price}"
             data_set.append(temp)
             id += 1
-            print(temp)
 
         id = 0
         while id < 2:
@@ -196,7 +195,7 @@ for i in range(0, csv.shape[0]):
 print("Dataset is now at " + str(len(data_set)))
 print("Adding in Total and Subtotals")
 num = 0
-while num < 200000:
+while num < 150000:
     temp = {}
     num += 1
     price = rand_price(200)
@@ -209,7 +208,6 @@ while num < 200000:
     temp["input"] = gen_totals(name, f'{price}', trigger)
     temp["output"] = f"{name} {trigger}{price}"
     data_set.append(temp)
-    print(temp)
 
 print("Dataset is now at " + str(len(data_set)))
 print(f"Total parent labels {test}")
@@ -222,7 +220,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #HYPERPARAMS-----------------------------------------------------------------------
 batch_size = 8
 learning_rate = 3e-5
-epochs = 6
+epochs = 5
 sentence_length = 60
 
 # load model
