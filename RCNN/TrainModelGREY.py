@@ -17,16 +17,16 @@ from skimage.filters import threshold_local
 def preprocess_image(image):
     # Load the image using OpenCV
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    blur = cv2.GaussianBlur(gray, (3,3), 0)
-    thresh = cv2.adaptiveThreshold(blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 15, 4)
-    # thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+    # blur = cv2.GaussianBlur(gray, (3,3), 0)
+    # thresh = cv2.adaptiveThreshold(blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 15, 4)
+    # # thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
     
-    # Morph open to remove noise and invert image
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
-    opening = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=1)
-    # invert = 255 - opening
+    # # Morph open to remove noise and invert image
+    # kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
+    # opening = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=1)
+    # # invert = 255 - opening
 
-    return opening
+    return gray
 
 #Specify path to main database
 data_dir = r"D:\photos\RCNN4\BBOXES"
@@ -47,7 +47,7 @@ while i <= 2:
             img_path = os.path.join(path, row.get("file_name")).replace("\\","/")
             if os.path.exists(img_path):
                 label = row.get("text").rstrip("\n")
-                if len(label.split(' ')) <= 4 and label != "***":
+                if len(label.split(' ')) <= 3 and label != "***":
                     vocab.update(list(label))
                     max_len = max(max_len, len(label))
                     database.append([img_path, label])
@@ -69,7 +69,7 @@ with open(os.path.join(path, "testing.jsonl").replace("\\","/"), 'r') as file:
         img_path = os.path.join(path, row.get("file_name")).replace("\\","/")
         if os.path.exists(img_path):
             label = row.get("text").rstrip("\n")
-            if len(label.split(' ')) <= 4 and label != "***":
+            if len(label.split(' ')) <= 3 and label != "***":
                 vocab.update(list(label))
                 max_len = max(max_len, len(label))
                 database.append([img_path, label])
@@ -208,8 +208,9 @@ class CVImage(image.Image):
     
     def __call__(self) -> np.ndarray:
         return self._image
+    
 #create data loaders
-model_config = ConfigFile(name = "CRNNGREY", path = model_path, lr=0.001, bs=16)
+model_config = ConfigFile(name = "CRNNG999", path = model_path, lr=0.0005, bs=16, h=36, w=224)
 
 model_config.vocab = "".join(vocab)
 model_config.max_txt_len = max_len
@@ -227,11 +228,11 @@ train_set.augmentors = [
     # du.RandomBrightness(),
     du.RandomErodeDilate(),
     du.RandomSharpen(),
-    du.RandomRotate(angle=15),
+    # du.RandomRotate(angle=5),
     ]
 
 #initialize model, optimizer, and loss
-model = modelArc.CRNNgreyNEW(len(model_config.vocab))
+model = modelArc.CRNNGBIGGER(len(model_config.vocab))
 loss = trainer.CTCLoss(blank = len(model_config.vocab))
 optimizer = torch.optim.Adam(model.parameters(), lr=model_config.lr)
 
@@ -240,10 +241,10 @@ if torch.cuda.is_available():
     print("CUDA Enabled...Training On GPU")
 
 #initialze callbacks and trainer
-earlystop = callbacks.EarlyStopping(monitor = "val_CER", patience = 45, verbose = True)
+earlystop = callbacks.EarlyStopping(monitor = "val_CER", patience = 38, verbose = True)
 ckpt = callbacks.ModelCheckpoint((model_config.model_path + "/model.pt").replace("\\","/"), monitor = "val_CER", verbose = True)
 tracker = callbacks.TensorBoard((model_config.model_path + "/logs").replace("\\","/"))
-auto_lr = callbacks.ReduceLROnPlateau(monitor = "val_CER", factor=0.9, patience = 10, verbose = True)
+auto_lr = callbacks.ReduceLROnPlateau(monitor = "val_CER", factor=0.9, patience = 5, verbose = True)
 save_model = callbacks.Model2onnx(saved_model_path = (os.path.join(model_path, datetime.strftime(datetime.now(), "%Y%m%d%H%M"),"model.pt").replace("\\","/")), input_shape = (1, 1, model_config.height, model_config.width), verbose = True, metadata = {"vocab": model_config.vocab})
 
 train_struct = trainer.Trainer(model, optimizer, loss, metrics = [metric.CERMetric(model_config.vocab), metric.WERMetric(model_config.vocab)])

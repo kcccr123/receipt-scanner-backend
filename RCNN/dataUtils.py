@@ -222,16 +222,30 @@ class ImageResizer(Transformer):
         original_image = cv2.resize(unpaded_image, (original_width, original_height))
 
         return original_image
+    
+    @staticmethod
+    def resize_maintaining_aspect_ratio(image: np.ndarray, width_target: int, height_target: int, padding_color: int=0) -> np.ndarray:
 
+        height, width = image.shape[:2]
+        ratio = min(width_target / width, height_target / height)
+        new_w, new_h = int(width * ratio), int(height * ratio)
+
+        resized_image = cv2.resize(image, (new_w, new_h))
+        delta_w = width_target - new_w
+        delta_h = height_target - new_h
+        top, bottom = delta_h//2, delta_h-(delta_h//2)
+        left, right = delta_w//2, delta_w-(delta_w//2)
+
+        new_image = cv2.copyMakeBorder(resized_image, top, bottom, left, right, cv2.BORDER_CONSTANT, value=padding_color)
+
+        return new_image
+    
     def __call__(self, image: Image, label: typing.Any) -> typing.Tuple[Image, typing.Any]:
         
         if not isinstance(image, Image):
             raise TypeError(f"Expected image to be of type Image, got {type(image)}")
 
-        image_numpy = cv2.resize(image.numpy(), (self._width, self._height))
-        if isinstance(label, Image):
-            label_numpy = cv2.resize(label.numpy(), (self._width, self._height))
-            label.update(label_numpy)
+        image_numpy = self.resize_maintaining_aspect_ratio(image.numpy(), self._width, self._height, self._padding_color)
 
         image.update(image_numpy)
 
