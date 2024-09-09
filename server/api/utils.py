@@ -82,22 +82,33 @@ def runBartPrediction(lst):
     print (result)
     return result
 
-def temporaryProcess(bartResults, labels, conversion):
+def findPrice(rcnn_results):
+    maxs = []
+    removed = []
+    decimal_pattern = re.compile(r'^\d+\.\d{2}$')
+    for result in rcnn_results:
+        temp = []
+        non_temp = []
+        for i in result:
+            if decimal_pattern.match(i):
+                temp.append(i)
+            else:
+                non_temp.append(i)
+        if len(temp) > 0:
+            maxs.append(max(temp))
+        else:
+            maxs.append(0)
+        removed.append(non_temp)
+    print(removed, maxs)
+    return removed, maxs
 
-    results = []
+def temporaryProcess(bartResults, labels, conversion, maxs):
+
 
     for i in range(len(bartResults)):
-        copy = bartResults[i]
-        money_numbers = re.findall(r'\d+\.\d{2}', bartResults[i])
-        print
-        money_floats = [float(money) for money in money_numbers]
-        print(money_floats)
-        largest = max(money_floats)
-        copy.replace(str(largest), '')
-        copy += " " + conversion[labels[i]] + str(largest)
-        results.append(copy)
+        bartResults[i] += " " + conversion[labels[i]] + str(maxs[i])
 
-    return results
+    return bartResults
 
 
 
@@ -159,7 +170,7 @@ def runRecieptPrediction(image, yoloPath, rcnnPath):
     
     # run rcnn to decipher words
     rcnn = inferencemode(rcnnPath)
-    rcnn_results = rcnn.run(cv2.cvtColor(fixed_image_coloured, cv2.COLOR_BGR2GRAY), bounding_boxes)
+    rcnn_results = rcnn.run(fixed_image_coloured, bounding_boxes)
     if isinstance(rcnn_results, np.ndarray):
         print('check')
         rcnn_results = rcnn_results.tolist()
@@ -168,8 +179,11 @@ def runRecieptPrediction(image, yoloPath, rcnnPath):
 
     for i in range(len(rcnn_results)):
         rcnn_results[i].append(conversion[labels[i]])
+
+    removed, maxs = findPrice(rcnn_results)
     
-    bart_results = runBartPrediction(rcnn_results)
-    # temp_staging = temporaryProcess(bart_results, labels, conversion)
-    results = processPredictionForResponse(bart_results )
+    bart_results = runBartPrediction(removed)
+    temp_staging = temporaryProcess(bart_results, labels, conversion, maxs)
+    print(temp_staging)
+    results = processPredictionForResponse(temp_staging )
     return (500, results)
