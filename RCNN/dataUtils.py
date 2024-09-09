@@ -58,18 +58,10 @@ class RandomBrightness(Augmentor):
         self._delta = delta
 
     def augment(self, image: Image, value: float) -> Image:
-
-        hsv = np.array(image.HSV(), dtype = np.float32)
-
-        hsv[:, :, 1] = hsv[:, :, 1] * value
-        hsv[:, :, 2] = hsv[:, :, 2] * value
-
-        hsv = np.uint8(np.clip(hsv, 0, 255))
-
-        img = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
-
-        image.update(img)
-
+        gray = image.numpy().astype(np.float32)
+        gray *= value  # Adjust brightness by scaling pixel values
+        gray = np.clip(gray, 0, 255).astype(np.uint8)
+        image.update(gray)
         return image
 
     @randomness
@@ -83,7 +75,7 @@ class RandomBrightness(Augmentor):
 class RandomRotate(Augmentor):
 
     def __init__(self, random_chance: float = 0.5, angle: typing.Union[int, typing.List]=30, 
-                borderValue: typing.Tuple[int, int, int]=None) -> None:
+                borderValue: typing.Optional[int]=None) -> None:
 
         super(RandomRotate, self).__init__(random_chance)
 
@@ -91,7 +83,7 @@ class RandomRotate(Augmentor):
         self._borderValue = borderValue
 
     @staticmethod
-    def rotate_image(image: np.ndarray, angle: typing.Union[float, int], borderValue: tuple=(0,0,0), return_rotation_matrix: bool=False) -> np.ndarray:
+    def rotate_image(image: np.ndarray, angle: typing.Union[float, int], borderValue: tuple=(0,), return_rotation_matrix: bool=False) -> typing.Union[np.ndarray, typing.Tuple[np.ndarray, np.ndarray]]:
         # grab the dimensions of the image and then determine the centre
         height, width = image.shape[:2]
         center_x, center_y = (width // 2, height // 2)
@@ -129,15 +121,14 @@ class RandomRotate(Augmentor):
             angle = float(np.random.uniform(-self._angle, self._angle))
 
         # generate random border color
-        borderValue = np.random.randint(0, 255, 3) if self._borderValue is None else self._borderValue
-        borderValue = [int(v) for v in borderValue]
+        borderValue = (int(np.random.randint(0, 255)),) if self._borderValue is None else (self._borderValue,)
 
         img, rotMat = self.rotate_image(image.numpy(), angle, borderValue, return_rotation_matrix=True)
 
 
         if isinstance(annotation, Image):
             # perform the actual rotation and return the annotation image
-            annotation_image = self.rotate_image(annotation.numpy(), angle, borderValue=(0, 0, 0))
+            annotation_image = self.rotate_image(annotation.numpy(), angle, (0,))
             annotation.update(annotation_image)
 
         image.update(img)
@@ -176,7 +167,7 @@ class RandomSharpen(Augmentor):
         super(RandomSharpen, self).__init__(random_chance)
 
         self._alpha_range = (alpha, 1.0)
-        self._ligtness_range = lightness_range
+        self._lightness_range = lightness_range
         self._lightness_anchor = 8
 
         self._kernel = np.array([[-1, -1, -1], [-1,  1, -1], [-1, -1, -1]], dtype=np.float32) if kernel is None else kernel
@@ -185,21 +176,16 @@ class RandomSharpen(Augmentor):
         assert 0 <= alpha <= 1.0, "Alpha must be between 0.0 and 1.0"
 
     def augment(self, image: Image) -> Image:
-        lightness = np.random.uniform(*self._ligtness_range)
+        lightness = np.random.uniform(*self._lightness_range)
         alpha = np.random.uniform(*self._alpha_range)
 
         kernel = self._kernel_anchor  * (self._lightness_anchor + lightness) + self._kernel
         kernel -= self._kernel_anchor
         kernel = (1 - alpha) * self._kernel_anchor + alpha * kernel
 
-        # Apply sharpening to each channel
-        r, g, b = cv2.split(image.numpy())
-        r_sharp = cv2.filter2D(r, -1, kernel)
-        g_sharp = cv2.filter2D(g, -1, kernel)
-        b_sharp = cv2.filter2D(b, -1, kernel)
-
-        # Merge the sharpened channels back into the original image
-        image.update(cv2.merge([r_sharp, g_sharp, b_sharp]))
+        gray = image.numpy()
+        sharp = cv2.filter2D(gray, -1, kernel)
+        image.update(sharp)
 
         return image
 
@@ -217,7 +203,7 @@ class Transformer:
     
 class ImageResizer(Transformer):
     #doesn't keep aspect ratio
-    def __init__(self, width: int, height: int, padding_color: typing.Tuple[int]=(0, 0, 0)) -> None:
+    def __init__(self, width: int, height: int, padding_color: int = 0) -> None:
         self._width = width
         self._height = height
         self._padding_color = padding_color
@@ -236,16 +222,30 @@ class ImageResizer(Transformer):
         original_image = cv2.resize(unpaded_image, (original_width, original_height))
 
         return original_image
+    
+    @staticmethod
+    def resize_maintaining_aspect_ratio(image: np.ndarray, width_target: int, height_target: int, padding_color: int=0) -> np.ndarray:
 
+        height, width = image.shape[:2]
+        ratio = min(width_target / width, height_target / height)
+        new_w, new_h = int(width * ratio), int(height * ratio)
+
+        resized_image = cv2.resize(image, (new_w, new_h))
+        delta_w = width_target - new_w
+        delta_h = height_target - new_h
+        top, bottom = delta_h//2, delta_h-(delta_h//2)
+        left, right = delta_w//2, delta_w-(delta_w//2)
+
+        new_image = cv2.copyMakeBorder(resized_image, top, bottom, left, right, cv2.BORDER_CONSTANT, value=padding_color)
+
+        return new_image
+    
     def __call__(self, image: Image, label: typing.Any) -> typing.Tuple[Image, typing.Any]:
         
         if not isinstance(image, Image):
             raise TypeError(f"Expected image to be of type Image, got {type(image)}")
 
-        image_numpy = cv2.resize(image.numpy(), (self._width, self._height))
-        if isinstance(label, Image):
-            label_numpy = cv2.resize(label.numpy(), (self._width, self._height))
-            label.update(label_numpy)
+        image_numpy = self.resize_maintaining_aspect_ratio(image.numpy(), self._width, self._height, self._padding_color)
 
         image.update(image_numpy)
 

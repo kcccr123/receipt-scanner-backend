@@ -13,12 +13,15 @@ def bbox2img(index: int, img_path: str, x_min: int, y_min: int, x_max: float, y_
 
     return None
 
-csv_path = "D:/photos/RCNN4/train/_annotations.csv"
-img_dir = "D:/photos/RCNN4/train"
-save_dir = "D:/photos/RCNN4/BBOXES"
+csv_path = r"D:\photos\RCNN_new_data\Original\annotations.csv"
+img_dir = r"D:\photos\RCNN_new_data\Original"
 
 csv = pd.read_csv(csv_path)
 for i in range(0, csv.shape[0]):
+    if csv.loc[i].at["class"] == "item":
+        save_dir = r"D:\photos\RCNN_new_data\bboxes\items"
+    else:
+        save_dir = r"D:\photos\RCNN_new_data\bboxes\other"
     bbox2img(i, os.path.join(img_dir, csv.loc[i].at["filename"]).replace("\\","/"), csv.loc[i].at["xmin"], csv.loc[i].at["ymin"], csv.loc[i].at["xmax"], csv.loc[i].at["ymax"], save_dir)
 
 

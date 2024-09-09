@@ -13,37 +13,18 @@ import json as js
 import numpy as np
 import cv2
 import typing
+from skimage.filters import threshold_local
+
+def bw_scanner(image):
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    T = threshold_local(gray, 21, offset = 5, method = "gaussian")
+    return (gray > T).astype("uint8") * 255
 
 #load data
 #Specify path to main database
 data_dir = r"D:\photos\RCNN4\BBOXES"
 model_path = r"D:\Projects\reciept-scanner\RCNN\models"
 database, vocab, max_len = [], set(), 0
-
-# largest_index = 492
-
-
-# print("dataset of " + str(largest_index) + " images")
-
-# for id in range(0, largest_index+1):
-
-#     img_path = os.path.join(data_dir, str(id) + ".jpg").replace("\\","/")
-    
-#     if os.path.exists(img_path):
-
-#         with open(os.path.join(data_dir, str(id) + ".txt").replace("\\","/"), 'r') as file:
-#             ground_truths = [line.strip() for line in file.readlines()]
-        
-#         for line in ground_truths:
-#             if not line.strip() == '':
-#                 label = line.rstrip("\n")
-#                 database.append([img_path, label])
-#                 vocab.update(list(label))
-#                 max_len = max(max_len, len(label))
-#     else:
-#         print("image with index " + str(id) + " do not exist")
-
-# print("dataset1 done")
 
 #load second dataset
 data_path = r"D:\photos\SORIE"
@@ -94,25 +75,24 @@ print("database, vocab, max_len, complete")
 
 #get the mean and std of dataset
 num_pixels = 0
-channel_sum = torch.tensor([0.0, 0.0, 0.0])
-channel_sum_squared = torch.tensor([0.0, 0.0, 0.0])
+channel_sum = torch.tensor([0.0])
+channel_sum_squared = torch.tensor([0.0])
 
 for pair in database:
     image_path = pair[0]
-    img = cv2.imread(image_path)
+    image = cv2.imread(image_path)
+    img = bw_scanner(image)
 
     if img is None:
         print(f"Warning: Could not read image at {image_path}. Skipping.")
         continue
 
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-
     height, width, num_channels = img.shape
 
     num_pixels += height * width
 
-    channel_sum += torch.tensor(img.sum(axis=(0, 1)), dtype=torch.float64)
-    channel_sum_squared += torch.tensor((img.astype(np.float64) ** 2).sum(axis=(0, 1)), dtype=torch.float64)
+    channel_sum += torch.tensor(img.sum(), dtype=torch.float64)
+    channel_sum_squared += torch.tensor((img.astype(np.float64) ** 2).sum(), dtype=torch.float64)
 
 mean = channel_sum/num_pixels
 variance = (channel_sum_squared / num_pixels) - (mean**2)
@@ -133,10 +113,10 @@ class CVImage(image.Image):
             if not os.path.exists(image):
                 raise FileNotFoundError(f"Image {image} not found.")
 
-            self._image = cv2.imread(image, method)
+            self._image = cv2.imread(image)
             self.path = image
-            self.color = "RGB"
-            self._image = cv2.cvtColor(self._image, cv2.COLOR_BGR2RGB)
+            self.color = "GREY"
+            self._image = bw_scanner(self._image)
 
         elif isinstance(image, np.ndarray):
             self._image = image
