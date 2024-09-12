@@ -2,7 +2,6 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 from skimage.filters import threshold_local
-from PIL import Image
 
 def opencv_resize(image, ratio):
     width = int(image.shape[1] * ratio)
