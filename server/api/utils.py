@@ -113,37 +113,27 @@ def temporaryProcess(bartResults, labels, conversion, maxs):
 
 
 def processPredictionForResponse(predictions):
-    objects = []
+    objects = {}
 
     for string in predictions:
-        tag = ""
-        obj = {}
-        for i in range(len(string) - 1, 0, -1):
-           if string[i] + string[i - 1] == "##":
-                tag = string[i - 1:]
-                hash_start = i - 1
-                break
-        
+        print(string)
+        try:
+            tag = string[string.index("##"):]
+        except:
+            continue
         if "TOTAL" in tag:
-            if "total" in obj:
-                obj["total"].append(tag[8:])
-            else:
-                obj["total"] = [tag[8:]]
+            total_object = {"name": "##TOTAL", "price": tag[tag.index(':') + 1:]}
+            objects[len(objects)] = total_object
+
         elif "PRICE" in tag:
-            value = string[:hash_start]
-            if value in obj:
-                obj[value].append(tag[8:])
-            else:
-                obj[value] = [tag[8:]]
+            
+            item_object = {"name": string[:string.index(tag)], "price": tag[tag.index(':') + 1:]}
+            objects[len(objects)] = item_object
         elif "SUBTOTAL" in tag:
-            if "subtotal" in obj:
-                obj["subtotal"].append(tag[10:])
-            else:
-                obj["subtotal"] = [tag[10:]]
+            sub_object = {"name": "##SUBTOTAL", "price": tag[tag.index(':') + 1:]}
+            objects[len(objects)] = sub_object
         else:
             continue
-        if len(obj) > 0:
-            objects.append(obj)
     
     # handle multiple objects of same type before return
     return objects

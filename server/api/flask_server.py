@@ -26,10 +26,10 @@ def predict():
 
     if result[0] == 400:
         # bad request
-        return jsonify(result, 400)
+         return jsonify({"error": "bad request"}), result[0]
 
     print(result)
-    return jsonify(result)
+    return jsonify(result[1]), 200
     # after running img in run yolo send processed bounding boxes back
    
 
