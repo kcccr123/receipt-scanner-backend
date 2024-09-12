@@ -23,8 +23,13 @@ def predict():
     
     # run prediction
     result = runRecieptPrediction(image,'models/best.pt', 'models/model.onnx')
+
+    if result[0] == 400:
+        # bad request
+         return jsonify({"error": "bad request"}), result[0]
+
     print(result)
-    return jsonify(result)
+    return jsonify(result[1]), 200
     # after running img in run yolo send processed bounding boxes back
    
 

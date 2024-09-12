@@ -25,7 +25,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 EXPOSE 5000
 
 # Define environment variable
-ENV FLASK_APP=flask-server.py
+ENV FLASK_APP=flask_server.py
 
 # Run flask app
-CMD ["flask", "run", "--host=0.0.0.0"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "flask_server:app"]
