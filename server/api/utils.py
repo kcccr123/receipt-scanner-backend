@@ -21,7 +21,7 @@ def runYOLO(img, modelpath):
     # Perform inference
     result = model(img, conf=0.3, iou=0.5)[0]
     
-    """
+    
     # Get annotated image with detections
     annotated_img = result.plot()
 
@@ -37,7 +37,7 @@ def runYOLO(img, modelpath):
     plt.imshow(cv2.cvtColor(annotated_img, cv2.COLOR_BGR2RGB))
     plt.title("Annotated Image with YOLO Detections")
     plt.axis('off')
-    plt.show()"""
+    plt.show()
     
 
     bounding_boxes = []
@@ -187,4 +187,4 @@ def runRecieptPrediction(image, yoloPath, rcnnPath):
 
     # process results for response
     results = processPredictionForResponse(temp_staging)
-    return (500, results)
+    return (200, results)
