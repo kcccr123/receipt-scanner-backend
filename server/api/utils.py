@@ -23,13 +23,14 @@ def runYOLO(img, modelpath):
     
     
     # Get annotated image with detections
-    annotated_img = result.plot()
+    #annotated_img = result.plot()
 
     # Save the annotated image if necessary
-    if os.path.exists('annotated_image.jpg'):
-        os.remove('annotated_image.jpg')
+    #if os.path.exists('annotated_image.jpg'):
+    #    os.remove('annotated_image.jpg')
     
-    # Save the annotated image
+
+    """# Save the annotated image
     cv2.imwrite('annotated_image.jpg', annotated_img)
 
     # Display the annotated image with bounding boxes using Matplotlib
@@ -37,8 +38,9 @@ def runYOLO(img, modelpath):
     plt.imshow(cv2.cvtColor(annotated_img, cv2.COLOR_BGR2RGB))
     plt.title("Annotated Image with YOLO Detections")
     plt.axis('off')
-    plt.show()
-    
+    plt.show()"""
+
+
 
     bounding_boxes = []
     labels = []
@@ -87,13 +89,14 @@ def runBartPrediction(lst):
 def findPrice(rcnn_results):
     maxs = []
     removed = []
-    decimal_pattern = re.compile(r'^\d+\.\d{2}$')
+    decimal_pattern = re.compile(r'^\$?\d+\.\d{2}$')
     for result in rcnn_results:
         temp = []
         non_temp = []
         for i in result:
             if decimal_pattern.match(i):
-                temp.append(i)
+                formatted = i.replace("$", "")
+                temp.append(formatted)
             else:
                 non_temp.append(i)
         if len(temp) > 0:
@@ -153,7 +156,7 @@ def runRecieptPrediction(image, yoloPath, rcnnPath):
     fixed_image, fixed_image_coloured = fix_angle(img)
 
     if len(fixed_image) == 0:
-        return (400, {"error": "Receipt is badly aligned, please try again."})
+        return (401, {"error": "Receipt is badly aligned, please try again."})
     
 
     # run yolo model to get bounding boxes
