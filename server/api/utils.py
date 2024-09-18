@@ -173,19 +173,25 @@ def runRecieptPrediction(image, yoloPath, rcnnPath):
     conversion = {'item': "##PRICE:", 'subtotal': '##SUBTOTAL:', 'total': '##TOTAL:'}
 
     # append labels to end of rcnn results
-    for i in range(len(rcnn_results)):
-        rcnn_results[i].append(conversion[labels[i]])
+    #for i in range(len(rcnn_results)):
+        #rcnn_results[i].append(conversion[labels[i]])
 
 
     # (temporary)
     # remove prices from rcnn results and find maxs
     removed, maxs = findPrice(rcnn_results)
+
+    joined_lst = []
     
-    bart_results = runBartPrediction(removed)
+    for i in removed:
+        joined_lst.append(" ".join(i))
+
+    
+    #bart_results = runBartPrediction(removed)
 
     # (temporary)
     # Bart is not producing tags, so add tags with max prices found earlier.
-    temp_staging = temporaryProcess(bart_results, labels, conversion, maxs)
+    temp_staging = temporaryProcess(joined_lst, labels, conversion, maxs)
     print(temp_staging)
 
     # process results for response

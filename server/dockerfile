@@ -31,3 +31,4 @@ ENV FLASK_ENV=production
 
 # Run the Flask development server
 CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:5000", "flask_server:app"]
+#CMD ["python", "flask_server.py"]

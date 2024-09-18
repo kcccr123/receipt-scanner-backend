@@ -9,9 +9,9 @@ import pandas as pd
 import os
 from datetime import datetime
 
-csv_path = r"D:\photos\Words\walmart\home\sdf\marketing_sample_for_walmart_com-product_details__20200101_20200331__30k_data.csv"
-save_dir = r"D:\photos\Words\walmart\home\sdf"
-model_dir = r"D:\Projects\reciept-scanner\BART"
+csv_path = r"D:\RecieptScanner\reciept-scanner\BART\walmart.csv"
+save_dir = r"D:\RecieptScanner\reciept-scanner\save"
+model_dir = r"D:\RecieptScanner\reciept-scanner\BART"
 checkpt_dir = os.path.join(model_dir, datetime.strftime(datetime.now(), "%Y%m%d%H%M"), "bart_model.pt").replace("\\","/")
 
 
@@ -49,9 +49,9 @@ def add_noise(name):
 
     noisy_words = []
     for word in words:
-        if random.random() < 0.5:
+        if random.random() < 0.15:
             word = misspell(word)
-        if random.random() < 0.2:
+        if random.random() < 0.15:
             word = ''.join([word, ''.join(random.choices(string.ascii_letters + string.digits + string.punctuation, k=random.randint(1, 5)))])
         noisy_words.append(word)
 
@@ -63,14 +63,19 @@ data_set = []
 for i in range(0, csv.shape[0]):
     grd_truth = csv.loc[i].at["Product Name"]
     if len(grd_truth) < 61 and grd_truth != "":
-        variations = 12 #5 + random.choice(range(0,6))
-        id = 0;
+        variations = 13 #5 + random.choice(range(0,6))
+        id = 0
         while id < variations:
             temp = {}
             temp["input"] = add_noise(grd_truth)
             temp["output"] = grd_truth
+            print(temp)
             data_set.append(temp)
             id += 1
+        temp = {}
+        temp["input"] = grd_truth
+        temp["output"] = grd_truth
+        data_set.append(temp)
 
 print("dataset of " + str(len(data_set)))
 
@@ -82,7 +87,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #HYPERPARAMS-----------------------------------------------------------------------
 batch_size = 8
 learning_rate = 3e-5
-epochs = 8
+epochs = 5
 sentence_length = 60
 
 # load model

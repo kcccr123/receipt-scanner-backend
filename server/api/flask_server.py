@@ -28,8 +28,8 @@ def predict():
         return jsonify(result[1]), result[0]
 
     print(result)
+    
     return jsonify(result[1]), 200
-    # after running img in run yolo send processed bounding boxes back
    
 
 
