@@ -9,8 +9,8 @@ import pandas as pd
 import os
 from datetime import datetime
 
-csv_path = r"C:\Users\MSI\Documents\marketing_sample_for_walmart_com-product_details__20200101_20200331__30k_data.csv"
-csv_path2 = r"C:\Users\MSI\Documents\food.csv"
+csv_path = r"D:\RecieptScanner\reciept-scanner\BART\walmart.csv"
+csv_path2 = r"D:\RecieptScanner\reciept-scanner\BART\food.csv"
 save_dir = r"D:\RecieptScanner\reciept-scanner\BART"
 model_dir = r"D:\RecieptScanner\reciept-scanner\BART"
 checkpt_dir = os.path.join(model_dir, datetime.strftime(datetime.now(), "%Y%m%d%H%M"), "bart_model.pt").replace("\\","/")
@@ -62,9 +62,9 @@ def add_noise(name, price):
 
     noisy_words = []
     for word in words:
-        if random.random() <= 0.5:
+        if random.random() <= 0.2:
             word = misspell(word)
-        else:
+        elif random.random() <= 0.15:
             word = shorten_word(word)
         # if random.random() < 0.20:
         #     word = ''.join([word, ''.join(random.choices(string.ascii_letters 
@@ -85,7 +85,7 @@ def add_serial(name, price, trigger = "##PRICE:"):
 
     result = []
     for word in words:
-        if random.random() <= 0.3:
+        if random.random() <= 0.25:
             if random.random() > 0.3:
                 length = random.randint(6, 12)
                 word = ' '.join([word, ''.join(random.choices(string.digits, k=length))])
@@ -130,8 +130,8 @@ for i in range(0, csv.shape[0]):
     item_name = csv.loc[i].at["Product Name"]
     if len(item_name) < 61 and item_name != "":
         test += 1
-        variations = 4 #5 + random.choice(range(0,6))
-        id = 0;
+        variations = 7 #5 + random.choice(range(0,6))
+        id = 0
         while id < variations:
             temp = {}
             price = rand_price()
@@ -144,6 +144,7 @@ for i in range(0, csv.shape[0]):
             temp["output"] = f"{item_name} ##Price:{price}"
             data_set.append(temp)
             id += 1
+            print(temp)
         
         id = 0
         while id < 2:
@@ -156,6 +157,13 @@ for i in range(0, csv.shape[0]):
             temp["input"] = input
             temp["output"] = f"{item_name} ##Price:{price}"
             data_set.append(temp)
+            print(temp)
+
+        temp["input"] = item_name
+        temp["output"] = f"{item_name} ##Price:{price}"
+        data_set.append(temp)
+        print(temp)
+
 
 print("Dataset is now at " + str(len(data_set)))
 print("Now pulling second dataset")
@@ -192,6 +200,12 @@ for i in range(0, csv.shape[0]):
             temp["input"] = input
             temp["output"] = f"{item_name} ##Price:{price}"
             data_set.append(temp)
+            print(temp)
+
+        temp["input"] = item_name
+        temp["output"] = f"{item_name} ##Price:{price}"
+        data_set.append(temp)
+        print(temp)
 
 print("Dataset is now at " + str(len(data_set)))
 print("Adding in Total and Subtotals")
@@ -222,7 +236,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #HYPERPARAMS-----------------------------------------------------------------------
 batch_size = 8
 learning_rate = 3e-5
-epochs = 6
+epochs = 4
 sentence_length = 60
 
 # load model
