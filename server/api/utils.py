@@ -126,17 +126,16 @@ def processPredictionForResponse(predictions):
             tag = string[string.index("##"):]
         except:
             continue
-        if "TOTAL" in tag:
+        if "SUBTOTAL" in tag:
+            sub_object = {"name": "##SUBTOTAL", "price": tag[tag.index(':') + 1:]}
+            objects[len(objects)] = sub_object
+        elif "TOTAL" in tag:
             total_object = {"name": "##TOTAL", "price": tag[tag.index(':') + 1:]}
             objects[len(objects)] = total_object
 
-        elif "PRICE" in tag:
-            
+        elif "Price" in tag:
             item_object = {"name": string[:string.index(tag)], "price": tag[tag.index(':') + 1:]}
             objects[len(objects)] = item_object
-        elif "SUBTOTAL" in tag:
-            sub_object = {"name": "##SUBTOTAL", "price": tag[tag.index(':') + 1:]}
-            objects[len(objects)] = sub_object
         else:
             continue
     
@@ -173,27 +172,28 @@ def runRecieptPrediction(image, yoloPath, rcnnPath):
     conversion = {'item': "##PRICE:", 'subtotal': '##SUBTOTAL:', 'total': '##TOTAL:'}
 
     # append labels to end of rcnn results
-    #for i in range(len(rcnn_results)):
-        #rcnn_results[i].append(conversion[labels[i]])
+    for i in range(len(rcnn_results)):
+        rcnn_results[i].append(conversion[labels[i]])
 
 
     # (temporary)
     # remove prices from rcnn results and find maxs
-    removed, maxs = findPrice(rcnn_results)
+    #removed, maxs = findPrice(rcnn_results)
 
-    joined_lst = []
+    #joined_lst = []
     
-    for i in removed:
-        joined_lst.append(" ".join(i))
+    #for i in removed:
+    #    joined_lst.append(" ".join(i))
 
     
-    #bart_results = runBartPrediction(removed)
+    bart_results = runBartPrediction(rcnn_results)
+    print(bart_results, "here")
 
     # (temporary)
     # Bart is not producing tags, so add tags with max prices found earlier.
-    temp_staging = temporaryProcess(joined_lst, labels, conversion, maxs)
-    print(temp_staging)
+    #temp_staging = temporaryProcess(bart_results, labels, conversion, maxs)
+    #print(temp_staging)
 
     # process results for response
-    results = processPredictionForResponse(temp_staging)
+    results = processPredictionForResponse(bart_results)
     return (200, results)
