@@ -21,15 +21,16 @@ def runYOLO(img, modelpath):
     # Perform inference
     result = model(img, conf=0.3, iou=0.5)[0]
     
-    """
+    
     # Get annotated image with detections
-    annotated_img = result.plot()
+    #annotated_img = result.plot()
 
     # Save the annotated image if necessary
-    if os.path.exists('annotated_image.jpg'):
-        os.remove('annotated_image.jpg')
+    #if os.path.exists('annotated_image.jpg'):
+    #    os.remove('annotated_image.jpg')
     
-    # Save the annotated image
+
+    """# Save the annotated image
     cv2.imwrite('annotated_image.jpg', annotated_img)
 
     # Display the annotated image with bounding boxes using Matplotlib
@@ -38,7 +39,8 @@ def runYOLO(img, modelpath):
     plt.title("Annotated Image with YOLO Detections")
     plt.axis('off')
     plt.show()"""
-    
+
+
 
     bounding_boxes = []
     labels = []
@@ -87,13 +89,14 @@ def runBartPrediction(lst):
 def findPrice(rcnn_results):
     maxs = []
     removed = []
-    decimal_pattern = re.compile(r'^\d+\.\d{2}$')
+    decimal_pattern = re.compile(r'^\$?\d+\.\d{2}$')
     for result in rcnn_results:
         temp = []
         non_temp = []
         for i in result:
             if decimal_pattern.match(i):
-                temp.append(i)
+                formatted = i.replace("$", "")
+                temp.append(formatted)
             else:
                 non_temp.append(i)
         if len(temp) > 0:
@@ -123,17 +126,16 @@ def processPredictionForResponse(predictions):
             tag = string[string.index("##"):]
         except:
             continue
-        if "TOTAL" in tag:
+        if "SUBTOTAL" in tag:
+            sub_object = {"name": "##SUBTOTAL", "price": tag[tag.index(':') + 1:]}
+            objects[len(objects)] = sub_object
+        elif "TOTAL" in tag:
             total_object = {"name": "##TOTAL", "price": tag[tag.index(':') + 1:]}
             objects[len(objects)] = total_object
 
-        elif "PRICE" in tag:
-            
+        elif "Price" in tag:
             item_object = {"name": string[:string.index(tag)], "price": tag[tag.index(':') + 1:]}
             objects[len(objects)] = item_object
-        elif "SUBTOTAL" in tag:
-            sub_object = {"name": "##SUBTOTAL", "price": tag[tag.index(':') + 1:]}
-            objects[len(objects)] = sub_object
         else:
             continue
     
@@ -153,7 +155,7 @@ def runRecieptPrediction(image, yoloPath, rcnnPath):
     fixed_image, fixed_image_coloured = fix_angle(img)
 
     if len(fixed_image) == 0:
-        return (400, {"error": "Receipt is badly aligned, please try again."})
+        return (401, {"error": "Receipt is badly aligned, please try again."})
     
 
     # run yolo model to get bounding boxes
@@ -176,15 +178,22 @@ def runRecieptPrediction(image, yoloPath, rcnnPath):
 
     # (temporary)
     # remove prices from rcnn results and find maxs
-    removed, maxs = findPrice(rcnn_results)
+    #removed, maxs = findPrice(rcnn_results)
+
+    #joined_lst = []
     
-    bart_results = runBartPrediction(removed)
+    #for i in removed:
+    #    joined_lst.append(" ".join(i))
+
+    
+    bart_results = runBartPrediction(rcnn_results)
+    print(bart_results, "here")
 
     # (temporary)
     # Bart is not producing tags, so add tags with max prices found earlier.
-    temp_staging = temporaryProcess(bart_results, labels, conversion, maxs)
-    print(temp_staging)
+    #temp_staging = temporaryProcess(bart_results, labels, conversion, maxs)
+    #print(temp_staging)
 
     # process results for response
-    results = processPredictionForResponse(temp_staging)
-    return (500, results)
+    results = processPredictionForResponse(bart_results)
+    return (200, results)
