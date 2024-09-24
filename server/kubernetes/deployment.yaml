@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-server-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flask-server
+  template:
+    metadata:
+      labels:
+        app: flask-server
+    spec:
+      containers:
+        - name: flask-server
+          image: gcr.io/reciept-scanner-431421/flask-server:latest
+          ports:
+            - containerPort: 5000
