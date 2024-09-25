@@ -8,7 +8,9 @@
 *.tif
 *.svg
 
-# Ignore ONNX model files
+.ipynb_checkpoints/
+
+# Ignore model files
 *.onnx
 *.pt
 
@@ -21,3 +23,4 @@
 *.wav
 *.flac
 *.csv
+*.pyc
