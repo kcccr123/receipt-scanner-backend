@@ -90,7 +90,7 @@ To setup and run the training script:
 **Data Folder**
 1. Create a folder on your device.
 2. Inside that folder, create another folder named `unsplit`.
-3. Create two folders inside the `unsplit` named `images` and `labels`.
+3. Create two folders inside the `unsplit` folder named `images` and `labels`.
 4. Place your images and labels in there respective folders.
 
 **Set path in config.yaml**
@@ -107,7 +107,36 @@ For more information regarding training parameters, refer to the Ultralytics doc
 
 ### Flask Server
 
+The backend code for our application is located inside the `server` folder.
 
+The server can be run in development mode using Flask or built as a production server with Gunicorn, containerized within a Docker image.
+
+**Run a development server**
+1. Open a terminal and CD into the `server` folder.
+2. CD into the `api` folder.
+3. Run the command: `python flask_server.py`
+
+The server is now running, and you can make local RESTful requests to the endpoints served by the server.   
+The default URL used by Flask is: `http://127.0.0.1:5000`
+
+**Export as Docker image**
+1. Start your Docker daemon.
+2. Open a terminal and CD into the `server` folder, where the dockerfile is located.
+3. Run the command: `docker build -t <image_name>:<tag> .` -> Replace `<image_name>` and `<tag>` with a name and tag of your choice.
+
+Your Docker image should now be building.  
+You can run your new image in a container using: `docker run -d --name <container_name> -p 5000:5000 <image_name>:<tag>`  
+Replace `<container_name>` with a container name of your choice, and `<image_name>`, `<tag>` with the image name and tag you chose in the previous step.
+
+You should now be able to make requests to `http://127.0.0.1:5000`
+
+In the docker run command, the host port 5000 is mapped to container port 5000.   
+You can change the host port to any value you prefer. For example, to bind the host port 8080 to container port 5000, use:  
+`<Host Port>:5000 -> 8080:5000`
+
+Full example command: `docker run -d --name newContainer -p 8080:5000 flask_server:latest`
+
+Local requests will now be served at the URL: `http://127.0.0.1:8080`
 
 <!-- CONTACT -->
 
