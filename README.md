@@ -101,7 +101,8 @@ To setup and run the training script:
 1. Open the `receiptScannerYolo.ipynb` training script
 2. Read the instructions and run each cell up to and including the "Train the Model" cell.
   
-For more information regarding training parameters, refer to the Ultralytics documentation for YOLOv8: [YOLOv8 Tuning Documentation](https://docs.ultralytics.com/modes/train/#augmentation-settings-and-hyperparameters)
+For more information regarding training parameters, refer to the Ultralytics documentation for YOLOv8:   
+[YOLOv8 Tuning Documentation](https://docs.ultralytics.com/modes/train/#augmentation-settings-and-hyperparameters)
 
 ### RCNN
 
@@ -125,7 +126,7 @@ The default URL used by Flask is: `http://127.0.0.1:5000`
 3. Run the command: `docker build -t <image_name>:<tag> .` -> Replace `<image_name>` and `<tag>` with a name and tag of your choice.
 
 Your Docker image should now be building.  
-You can run your new image in a container using: `docker run -d --name <container_name> -p 5000:5000 <image_name>:<tag>`  
+You can run your new image in a container using: `docker run -d --name <container_name> -p 5000:5000 <image_name>:<tag>`    
 Replace `<container_name>` with a container name of your choice, and `<image_name>`, `<tag>` with the image name and tag you chose in the previous step.
 
 You should now be able to make requests to `http://127.0.0.1:5000`
