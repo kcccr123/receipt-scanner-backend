@@ -8,7 +8,9 @@
 *.tif
 *.svg
 
-.ipynb_checkpoints/
+# Ignore Python bytecode files and directories
+*.pyc
+__pycache__/
 
 # Ignore model files
 *.onnx
@@ -22,5 +24,6 @@
 *.mp3
 *.wav
 *.flac
+
+# Ignore CSV files (optional, if not needed)
 *.csv
-*.pyc
