@@ -29,7 +29,6 @@ def preprocess_image(image):
     return gray
 
 #Specify path to main database
-data_dir = r"D:\photos\RCNN4\BBOXES"
 model_path = r"D:\Projects\reciept-scanner\RCNN\models"
 database, vocab, max_len = [], set(), 0
 

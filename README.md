@@ -79,32 +79,50 @@ To build an image of the server using the dockerfile, please install [Docker](ht
 
 ### BART
 
-
 ### YOLOv8
 
 Training tools for our YOLOv8 model are located in the `RSYOLOV8` folder.
 
-The main training script is `receiptScannerYolo.ipynb`   
+The main training script is `receiptScannerYolo.ipynb`  
 To setup and run the training script:
 
 **Data Folder**
+
 1. Create a folder on your device.
 2. Inside that folder, create another folder named `unsplit`.
 3. Create two folders inside the `unsplit` folder named `images` and `labels`.
 4. Place your images and labels in there respective folders.
 
 **Set path in config.yaml**
+
 1. Open the `config.yaml` file located in the `RSYOLOV8` folder.
 2. Copy the absolute path of the data folder you created in the last section and replace the `path` field.
 
 **Run the training script**
+
 1. Open the `receiptScannerYolo.ipynb` training script
 2. Read the instructions and run each cell up to and including the "Train the Model" cell.
-  
-For more information regarding training parameters, refer to the Ultralytics documentation for YOLOv8:   
+
+For more information regarding training parameters, refer to the Ultralytics documentation for YOLOv8:  
 [YOLOv8 Tuning Documentation](https://docs.ultralytics.com/modes/train/#augmentation-settings-and-hyperparameters)
 
 ### RCNN
+
+Training toolds for RCNN model are located in the `RCNN` folder.
+
+To train, simply run the training script `TrainModelGREY.py` in the terminal.
+To setup the training script:
+
+**Data Folder**
+
+1. Create a folder on your device.
+2. Place traiing images inside that folder.
+3. In the same folder, create a .jsonl file containing the labels in the format `{"file_name":"image.jpg","text":"label"}`
+
+**Set path in training script**
+
+1. In `TrainModelGREY.py`, locate `data_path` and `model_path` fields at the begining of the script.
+2. Copy the absolute path of the data folder created in the previous section and the dictionary to save the model, then replace the `data_path` and `model_path` fields respectively.
 
 ### Flask Server
 
@@ -113,25 +131,27 @@ The backend code for our application is located inside the `server` folder.
 The server can be run in development mode using Flask or built as a production server with Gunicorn, containerized within a Docker image.
 
 **Run a development server**
+
 1. Open a terminal and CD into the `server` folder.
 2. CD into the `api` folder.
 3. Run the command: `python flask_server.py`
 
-The server is now running, and you can make local RESTful requests to the endpoints served by the server.   
+The server is now running, and you can make local RESTful requests to the endpoints served by the server.  
 The default URL used by Flask is: `http://127.0.0.1:5000`
 
 **Export as Docker image**
+
 1. Start your Docker daemon.
 2. Open a terminal and CD into the `server` folder, where the dockerfile is located.
 3. Run the command: `docker build -t <image_name>:<tag> .` -> Replace `<image_name>` and `<tag>` with a name and tag of your choice.
 
 Your Docker image should now be building.  
-You can run your new image in a container using: `docker run -d --name <container_name> -p 5000:5000 <image_name>:<tag>`    
+You can run your new image in a container using: `docker run -d --name <container_name> -p 5000:5000 <image_name>:<tag>`  
 Replace `<container_name>` with a container name of your choice, and `<image_name>`, `<tag>` with the image name and tag you chose in the previous step.
 
 You should now be able to make requests to `http://127.0.0.1:5000`
 
-In the docker run command, the host port 5000 is mapped to container port 5000.   
+In the docker run command, the host port 5000 is mapped to container port 5000.  
 You can change the host port to any value you prefer. For example, to bind the host port 8080 to container port 5000, use:  
 `<Host Port>:5000 -> 8080:5000`
 
@@ -149,5 +169,3 @@ Feel free to contact us at:
 @Gary Guo - garyz.guo@mail.utoronto.ca
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
- 
