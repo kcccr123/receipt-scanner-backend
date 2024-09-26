@@ -117,7 +117,7 @@ To setup the training script:
 
 1. Create a folder on your device.
 2. Place traiing images inside that folder.
-3. In the same folder, create a .jsonl file containing the labels in the format `{"file_name":"image.jpg","text":"label"}`
+3. In the same folder, create a .jsonl file containing the labels in the format `{"file_name":"image.jpg","text":"label"}`.
 
 **Set path in training script**
 
