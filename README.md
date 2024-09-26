@@ -110,7 +110,7 @@ For more information regarding training parameters, refer to the Ultralytics doc
 
 Training toolds for RCNN model are located in the `RCNN` folder.
 
-To train, simply run the training script `TrainModelGREY.py` in the terminal
+To train, simply run the training script `TrainModelGREY.py` in the terminal.
 To setup the training script:
 
 **Data Folder**
