@@ -9,10 +9,11 @@ import pandas as pd
 import os
 from datetime import datetime
 
-csv_path = r"D:\RecieptScanner\reciept-scanner\BART\walmart.csv"
-csv_path2 = r"D:\RecieptScanner\reciept-scanner\BART\food.csv"
-save_dir = r"D:\RecieptScanner\reciept-scanner\BART"
-model_dir = r"D:\RecieptScanner\reciept-scanner\BART"
+csv_path = r"D:\photos\Words\non-food.csv"
+csv_path2 = r"D:\photos\Words\food.csv"
+csv_path3 = r"D:\photos\Words\mini.csv"
+save_dir = r"D:\Projects\reciept-scanner\BART"
+model_dir = r"D:\Projects\reciept-scanner\BART"
 checkpt_dir = os.path.join(model_dir, datetime.strftime(datetime.now(), "%Y%m%d%H%M"), "bart_model.pt").replace("\\","/")
 
 
@@ -71,6 +72,10 @@ def add_noise(name, price):
         #                     + string.digits + string.punctuation, k=random.randint(1, 5)))])
         noisy_words.append(word)
     
+    if random.random() <= 0.95:
+        serial_number = ' '.join([word, ''.join(random.choices(string.digits, k=random.randint(5, 10)))])
+        noisy_words.append(serial_number)
+
     #add price
     noisy_words.append(price)
 
@@ -85,7 +90,7 @@ def add_serial(name, price, trigger = "##PRICE:"):
 
     result = []
     for word in words:
-        if random.random() <= 0.25:
+        if random.random() <= 0.15:
             if random.random() > 0.3:
                 length = random.randint(6, 12)
                 word = ' '.join([word, ''.join(random.choices(string.digits, k=length))])
@@ -120,14 +125,15 @@ def gen_totals(name, price, trigger):
     return input
     
 
+print("Pulling first dataset")
 csv = pd.read_csv(csv_path)
 
 test = 0
 
 data_set = []
-print("Pulling first dataset")
 for i in range(0, csv.shape[0]):
     item_name = csv.loc[i].at["Product Name"]
+    item_name = item_name.replace('"', '').replace('*', '')
     if len(item_name) < 61 and item_name != "":
         test += 1
         variations = 7 #5 + random.choice(range(0,6))
@@ -144,7 +150,7 @@ for i in range(0, csv.shape[0]):
             temp["output"] = f"{item_name} ##Price:{price}"
             data_set.append(temp)
             id += 1
-            print(temp)
+            # print(temp)
         
         id = 0
         while id < 2:
@@ -157,12 +163,12 @@ for i in range(0, csv.shape[0]):
             temp["input"] = input
             temp["output"] = f"{item_name} ##Price:{price}"
             data_set.append(temp)
-            print(temp)
+            # print(temp)
 
         temp["input"] = item_name
         temp["output"] = f"{item_name} ##Price:{price}"
         data_set.append(temp)
-        print(temp)
+        # print(temp)
 
 
 print("Dataset is now at " + str(len(data_set)))
@@ -187,7 +193,7 @@ for i in range(0, csv.shape[0]):
             temp["output"] = f"{item_name} ##Price:{price}"
             data_set.append(temp)
             id += 1
-            print(temp)
+            # print(temp)
 
         id = 0
         while id < 2:
@@ -200,17 +206,61 @@ for i in range(0, csv.shape[0]):
             temp["input"] = input
             temp["output"] = f"{item_name} ##Price:{price}"
             data_set.append(temp)
-            print(temp)
+            # print(temp)
 
         temp["input"] = item_name
         temp["output"] = f"{item_name} ##Price:{price}"
         data_set.append(temp)
-        print(temp)
+        # print(temp)
 
 print("Dataset is now at " + str(len(data_set)))
+
+print("Now pulling third dataset")
+
+csv = pd.read_csv(csv_path3)
+for i in range(0, csv.shape[0]):
+    item_name = csv.loc[i].at["Product Name"]
+    if len(item_name) < 61 and item_name != "":
+        test += 1
+        variations = 7 #5 + random.choice(range(0,6))
+        id = 0
+        while id < variations:
+            temp = {}
+            price = rand_price()
+            if(random.random() < 0.7):
+                input = add_noise(item_name, f"{price}")
+            else:
+                input = add_noise(item_name, f"${price}")
+            
+            temp["input"] = input
+            temp["output"] = f"{item_name} ##Price:{price}"
+            data_set.append(temp)
+            id += 1
+            # print(temp)
+
+        id = 0
+        while id < 2:
+            id += 1
+            temp = {}
+            if(random.random() < 0.5):
+                input = add_serial(item_name, f"{price}")
+            else:
+                input = add_serial(item_name, f"${price}")
+            temp["input"] = input
+            temp["output"] = f"{item_name} ##Price:{price}"
+            data_set.append(temp)
+            # print(temp)
+
+        temp["input"] = item_name
+        temp["output"] = f"{item_name} ##Price:{price}"
+        data_set.append(temp)
+        # print(temp)
+
+print("Dataset is now at " + str(len(data_set)))
+
 print("Adding in Total and Subtotals")
 num = 0
-while num < 200000:
+while num < 250000:
     temp = {}
     num += 1
     price = rand_price(200)
@@ -223,7 +273,7 @@ while num < 200000:
     temp["input"] = gen_totals(name, f'{price}', trigger)
     temp["output"] = f"{name} {trigger}{price}"
     data_set.append(temp)
-    print(temp)
+    # print(temp)
 
 print("Dataset is now at " + str(len(data_set)))
 print(f"Total parent labels {test}")
