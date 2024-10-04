@@ -88,19 +88,18 @@ for id in range(0, largest_index+1):
         minContourArea = int(img_width * img_height * 0.0015)
 
         image = preprocess_image(image)
-        # Apply thresholding
+
         _, binary_image = cv2.threshold(image, 128, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
 
-        # Define a kernel for dilation
         kernel = np.ones((3, 15), np.uint8)
 
-        # Dilate the binary image to combine characters into lines
+
         dilated_image = cv2.dilate(binary_image, kernel, iterations=2)
 
         start_x = img_width * 3 // 4  # Start from 3/4th of the width to the end
         roi = dilated_image[:, start_x:]
 
-        # Define a kernel for dilation
+
         kernel = np.ones((3, 15), np.uint8)
 
         # Apply dilation on the ROI
@@ -108,12 +107,10 @@ for id in range(0, largest_index+1):
 
         # Replace the right quarter of the original image with the dilated ROI
         dilated_image[:, start_x:] = dilated_roi
-        # Find contours
+
         contours, _ = cv2.findContours(dilated_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        # Filter contours to remove small areas that are unlikely to be full lines
         filtered_contours = [c for c in contours if cv2.contourArea(c) > minContourArea]
-        # Sort contours by top-to-bottom
         bounding_boxes = [cv2.boundingRect(c) for c in filtered_contours]
         bounding_boxes = sorted(bounding_boxes, key=lambda x: x[1])
 
