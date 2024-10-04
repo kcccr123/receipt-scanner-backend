@@ -6,7 +6,7 @@ import time
 import queue
 import threading
 
-
+#Random decorator
 def randomness(func):
 
     def wrapper(self, data: Image, annotation: typing.Any) -> typing.Tuple[Image, typing.Any]:
@@ -82,15 +82,12 @@ class RandomRotate(Augmentor):
         self._angle = angle
         self._borderValue = borderValue
 
-    @staticmethod
+    @staticmethod #util func
     def rotate_image(image: np.ndarray, angle: typing.Union[float, int], borderValue: tuple=(0,), return_rotation_matrix: bool=False) -> typing.Union[np.ndarray, typing.Tuple[np.ndarray, np.ndarray]]:
         # grab the dimensions of the image and then determine the centre
         height, width = image.shape[:2]
         center_x, center_y = (width // 2, height // 2)
 
-        # grab the rotation matrix (applying the negative of the
-        # angle to rotate clockwise), then grab the sine and cosine
-        # (i.e., the rotation components of the matrix)
         M = cv2.getRotationMatrix2D((center_x, center_y), angle, 1.0)
         cos = np.abs(M[0, 0])
         sin = np.abs(M[0, 1])
@@ -208,7 +205,7 @@ class ImageResizer(Transformer):
         self._height = height
         self._padding_color = padding_color
 
-    @staticmethod
+    @staticmethod 
     def unpad_maintaining_aspect_ratio(padded_image: np.ndarray, original_width: int, original_height: int) -> np.ndarray:
         height, width = padded_image.shape[:2]
         ratio = min(width / original_width, height / original_height)

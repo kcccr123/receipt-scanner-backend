@@ -12,7 +12,6 @@ from callbacks import Callback, CallbacksHandler
 from data import DataLoader
 
 def toTorch(data: np.ndarray, target: np.ndarray) -> typing.Tuple[torch.Tensor, torch.Tensor]:
-    #Check if data is of type torch.Tensor, if not convert it to torch.Tensor
     if not isinstance(data, torch.Tensor):
         data = torch.from_numpy(data)
 
@@ -221,27 +220,13 @@ class Trainer:
         return logs
 
 class CTCLoss(nn.Module):
-    """ CTC loss for PyTorch
-    """
-    def __init__(self, blank: int, reduction: str="mean", zero_infinity: bool=True):
-        """ CTC loss for PyTorch
 
-        Args:
-            blank: Index of the blank label
-        """
+    def __init__(self, blank: int, reduction: str="mean", zero_infinity: bool=True):
         super(CTCLoss, self).__init__()
         self.ctc_loss = nn.CTCLoss(blank=blank, reduction=reduction, zero_infinity=zero_infinity)
         self.blank = blank
 
     def forward(self, output, target):
-        """
-        Args:
-            output: Tensor of shape (batch_size, num_classes, sequence_length)
-            target: Tensor of shape (batch_size, sequence_length)
-            
-        Returns:
-            loss: Scalar
-        """
         # Remove padding and blank tokens from target
         target_lengths = torch.sum(target != self.blank, dim=1)
         using_dtype = torch.int32 if max(target_lengths) <= 256 else torch.int64
