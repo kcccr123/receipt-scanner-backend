@@ -275,45 +275,35 @@ def runGptPrediction(values):
     return corrected_list
     
 
-def runRecieptPredictionGpt(image, yoloPath, rcnnPath):
-    img_byte_arr = io.BytesIO()
-    Image.open(image).save(img_byte_arr, format='JPEG')
-    img_byte_arr = img_byte_arr.getvalue()
 
-    np_img = np.frombuffer(img_byte_arr, np.uint8)
-    img = cv2.imdecode(np_img, cv2.IMREAD_COLOR)
-
-    #some moderate issue here
-
-    fixed_image, fixed_image_coloured = fix_angle(img)
-
-    if len(fixed_image) == 0:
-        return (401, {"error": "Receipt is badly aligned, please try again."})
+def runRecieptPredictionGpt(image):
+    # takes base64 encoded receipt and makes api call to chatGPT to decipher contents.
+    client = OpenAI(
+        api_key=openai_api_key,
+    )
     
 
-    # run yolo model to get bounding boxes
-    bounding_boxes, labels = runYOLO(fixed_image, yoloPath)
-        
-    
-    # run rcnn to decipher words
-    rcnn = inferencemode(rcnnPath)
-    rcnn_results = rcnn.run(fixed_image_coloured, bounding_boxes)
-    if isinstance(rcnn_results, np.ndarray):
-        print('check')
-        rcnn_results = rcnn_results.tolist()
+    response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": "What is in this image?",
+                },
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/jpeg;base64,{image}"},
+                },
+            ],
+        }
+    ],
+    )
 
-    conversion = {'item': "##PRICE:", 'subtotal': '##SUBTOTAL:', 'total': '##TOTAL:'}
-
-    # append labels to end of rcnn results
-    for i in range(len(rcnn_results)):
-        rcnn_results[i].append(conversion[labels[i]])
+    print(response.choices[0].message.content)
 
 
-    # replace bart with gpt api call
-    gpt_results = runGptPrediction(rcnn_results)
-    print(gpt_results, "here")
 
 
-    # process results for response
-    results = processPredictionForResponse(gpt_results)
-    return (200, results)
