@@ -11,7 +11,6 @@ import torch
 import re
 from inference_mode import inferencemode
 from openai import OpenAI
-from dotenv import load_dotenv
 import json
 
 def runYOLO(img, modelpath):
@@ -287,6 +286,31 @@ def runRecieptPredictionGpt(image):
     model="gpt-4o",
     messages=[
         {
+            "role": "system",
+            "content": (
+                "You are a helpful assistant that processes an image of a receipt containing user items. "
+                "Do not include items that have a cost of 0."
+                "Do not include tax as an element in the json object."
+                "Remeber that the total value of the purchase might be under other names other then just total."
+                "Return a valid JSON object, for example:\n\n"
+                "{\n"
+                "  \"items\": [\n"
+                "    {\n"
+                "      \"name\": \"Apple\",\n"
+                "      \"price\": 1.5\n"
+                "    }\n"
+                "  ],\n"
+                "  \"subtotal\": {\n"
+                "    \"price\": 10\n"
+                "  },\n"
+                "  \"total\": {\n"
+                "    \"price\": 10\n"
+                "  }\n"
+                "}\n\n"
+                "Do not include any additional text, explanation, or code fences."
+            )
+        },
+        {
             "role": "user",
             "content": [
                 {
@@ -302,8 +326,37 @@ def runRecieptPredictionGpt(image):
     ],
     )
 
-    print(response.choices[0].message.content)
+    assistant_reply = response.choices[0].message.content
+    print(assistant_reply)
+    # Convert the JSON string to a Python list (or array of objects)
+    try:
+        corrected_list = json.loads(assistant_reply)
+    except json.JSONDecodeError:
+        return [500, "GPT Error"]
+    print(corrected_list, " final list ")
+    return [200, corrected_list]
 
+'''
+Example return object
+{
+  "items": [
+    {
+      "name": "Deboned Chicken Thigh",
+      "price": 14.99
+    },
+    {
+      "name": "4 pcs",
+      "price": 8.49
+    }
+  ],
+  "subtotal": {
+    "price": 23.48
+  },
+  "total": {
+    "price": 26.53
+  }
+}
+'''
 
 
 
