@@ -292,8 +292,10 @@ def runRecieptPredictionGpt(image):
                 "Do not include items that have a cost of 0."
                 "Do not include tax as an element in the json object."
                 "Remeber that the total value of the purchase might be under other names other then just total."
+                "ONLY IF the name of the store the receipt is from is deceipherable, add the name of the store to the final JSON Object."
                 "Return a valid JSON object, for example:\n\n"
                 "{\n"
+                " \"store\": Walmart,\n"
                 "  \"items\": [\n"
                 "    {\n"
                 "      \"name\": \"Apple\",\n"
@@ -327,13 +329,11 @@ def runRecieptPredictionGpt(image):
     )
 
     assistant_reply = response.choices[0].message.content
-    print(assistant_reply)
     # Convert the JSON string to a Python list (or array of objects)
     try:
         corrected_list = json.loads(assistant_reply)
     except json.JSONDecodeError:
         return [500, "GPT Error"]
-    print(corrected_list, " final list ")
     return [200, corrected_list]
 
 '''
