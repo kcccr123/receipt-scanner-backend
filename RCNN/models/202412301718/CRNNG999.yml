@@ -1,0 +1,10 @@
+batch_size: 16
+height: 36
+lr: 0.0005
+max_txt_len: 40
+model_path: D:/Projects/reciept-scanner/RCNN/models/202412301718
+name: CRNNG999
+train_epochs: 100
+vocab: "BS2fhn.`C Kl\u2019{7$MqZR1=,\xE9)DYmWp;\"GN_F]!vtI&P|\u2018?0[a3bky>6\uFFE5\
+  \xE8\\+cw'uTUsz\xB7Vr/<xEXJ*-:5}@L(d9igj#eQA^4%H~Oo8"
+width: 224

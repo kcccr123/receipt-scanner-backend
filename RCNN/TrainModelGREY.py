@@ -11,6 +11,7 @@ from datetime import datetime
 import json as js
 import numpy as np
 import cv2
+import pandas as pd
 import typing
 from skimage.filters import threshold_local
 
@@ -35,6 +36,10 @@ database, vocab, max_len = [], set(), 0
 
 #load second dataset
 data_path = r"D:\photos\SORIE"
+
+#load third dataset
+data3 = r"D:\photos\RCNN_new_data\official_label.xlsx"
+pth = r"D:\photos\RCNN_new_data\official"
 
 path = os.path.join(data_path, "train").replace("\\","/")
 i = 1
@@ -76,6 +81,21 @@ with open(os.path.join(path, "testing.jsonl").replace("\\","/"), 'r') as file:
         else:
             print("image with path " + str(img_path) + " do not exist")
 print("dataset2 done")
+
+print("loading dataset")
+df = pd.read_excel(data3.replace("\\","/"))
+
+for i in range(0, df.shape[0]):
+    img_path = os.path.join(pth, str(df.at[i, "Filename"])).replace("\\","/")
+    if os.path.exists(img_path):
+            label = str(df.at[i, "Label"]).rstrip("\n")
+            vocab.update(list(label))
+            max_len = max(max_len, len(label))
+            database.append([img_path, label])
+    else:
+            print("image with path " + str(img_path) + " do not exist")
+
+print("dataset3 done")
 print(len(database))
 
 print("database, vocab, max_len, complete")
@@ -241,7 +261,7 @@ if torch.cuda.is_available():
     print("CUDA Enabled...Training On GPU")
 
 #initialze callbacks and trainer
-earlystop = callbacks.EarlyStopping(monitor = "val_CER", patience = 38, verbose = True)
+earlystop = callbacks.EarlyStopping(monitor = "val_CER", patience = 33, verbose = True)
 ckpt = callbacks.ModelCheckpoint((model_config.model_path + "/model.pt").replace("\\","/"), monitor = "val_CER", verbose = True)
 tracker = callbacks.TensorBoard((model_config.model_path + "/logs").replace("\\","/"))
 auto_lr = callbacks.ReduceLROnPlateau(monitor = "val_CER", factor=0.9, patience = 5, verbose = True)
