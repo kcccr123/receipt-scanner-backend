@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 import base64
-from utils import runRecieptPrediction, runRecieptPredictionGpt, runGptPrediction
+from utils import runRecieptPrediction
+from gpt_utils import runRecieptPredictionGpt, runGptPrediction
 
 app = Flask(__name__)
 
