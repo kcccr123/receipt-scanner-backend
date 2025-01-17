@@ -5,11 +5,11 @@ import numpy as np
 import cv2
 from transformers import BartTokenizer, BartForConditionalGeneration
 from fix_angle import fix_angle
-import os
-import matplotlib.pyplot as plt
 import torch
 import re
 from inference_mode import inferencemode
+
+
 
 def runYOLO(img, modelpath):
     # Ensure the image is in BGR format (from grayscale)
@@ -185,7 +185,7 @@ def runRecieptPrediction(image, yoloPath, rcnnPath):
     #for i in removed:
     #    joined_lst.append(" ".join(i))
 
-    
+    print(rcnn_results, "rcnn results")
     bart_results = runBartPrediction(rcnn_results)
     print(bart_results, "here")
 
@@ -197,3 +197,7 @@ def runRecieptPrediction(image, yoloPath, rcnnPath):
     # process results for response
     results = processPredictionForResponse(bart_results)
     return (200, results)
+
+
+
+
