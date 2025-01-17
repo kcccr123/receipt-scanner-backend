@@ -12,5 +12,5 @@ transformers==4.41.2
 scikit-image==0.24.0
 Pillow==10.3.0
 gunicorn==23.0.0
-openai==1.55.0
+openai==1.56.0
 numpy==1.24.3
