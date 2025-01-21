@@ -25,4 +25,3 @@
 *.csv
 server/api/__pycache__/utils.cpython-311.pyc
 /server/api/__pycache__
-/server/api/__pycache__
