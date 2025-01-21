@@ -1,9 +1,0 @@
-batch_size: 16
-height: 32
-lr: 0.0004
-max_txt_len: 69
-model_path: D:/Projects/reciept-scanner/RCNN/models/202408300057
-name: CRNNGREY
-train_epochs: 100
-vocab: "}5_\xB7%H`;/[\\YMNmhA1TD&J .WEF<VKUZi027SC,sB36P?Rl>~9):\"$'4=G{^*n@OX#ar(QcI|e8Ld!-+]"
-width: 128

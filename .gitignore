@@ -8,7 +8,11 @@
 *.tif
 *.svg
 
-# Ignore ONNX model files
+# Ignore Python bytecode files and directories
+*.pyc
+__pycache__/
+
+# Ignore model files
 *.onnx
 *.pt
 
@@ -22,6 +26,8 @@
 *.mp3
 *.wav
 *.flac
+
 *.csv
 server/api/__pycache__/utils.cpython-311.pyc
 /server/api/__pycache__
+

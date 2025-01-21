@@ -13,6 +13,7 @@ import numpy as np
 import cv2
 import typing
 from skimage.filters import threshold_local
+import image
 
 def preprocess_image(image):
     # Load the image using OpenCV
@@ -29,7 +30,6 @@ def preprocess_image(image):
     return gray
 
 #Specify path to main database
-data_dir = r"D:\photos\RCNN4\BBOXES"
 model_path = r"D:\Projects\reciept-scanner\RCNN\models"
 database, vocab, max_len = [], set(), 0
 
@@ -109,7 +109,7 @@ print("database, vocab, max_len, complete")
 # print("Mean:", mean.numpy())
 # print("Standard Deviation:", std.numpy())
 
-import image
+
 class CVImage(image.Image):
     #Image class for storing image data and metadata (opencv based)
 
@@ -210,7 +210,7 @@ class CVImage(image.Image):
         return self._image
     
 #create data loaders
-model_config = ConfigFile(name = "CRNNG999", path = model_path, lr=0.0005, bs=16, h=36, w=224)
+model_config = ConfigFile(name = "CRNNFinal", path = model_path, lr=0.0005, bs=16, h=36, w=224)
 
 model_config.vocab = "".join(vocab)
 model_config.max_txt_len = max_len

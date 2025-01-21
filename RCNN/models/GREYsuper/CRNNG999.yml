@@ -1,9 +1,0 @@
-batch_size: 16
-height: 36
-lr: 0.0005
-max_txt_len: 40
-model_path: D:/Projects/reciept-scanner/RCNN/models/202409080338
-name: CRNNG999
-train_epochs: 100
-vocab: "'l!Q^&K\xB7=a.B7_(UWT8ZCG>r~\":1+9[3AX\\/h]6 H5s#i@?%<S}cP|Y-4VNMeO,dm)JL`FnRI0E2$D*{;"
-width: 224

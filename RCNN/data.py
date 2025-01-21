@@ -3,7 +3,6 @@ import copy
 import typing
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
 import logging
 from dataUtils import Transformer, Augmentor
 
@@ -27,7 +26,6 @@ class DataLoader:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.setLevel(log_level)
 
-        # Check if dataset has length
         if not len(dataset):
             raise ValueError("Dataset must be iterable")
 
