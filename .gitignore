@@ -16,6 +16,8 @@ __pycache__/
 *.onnx
 *.pt
 
+.env
+
 # Ignore other common media files (optional)
 *.mp4
 *.mkv
@@ -25,5 +27,7 @@ __pycache__/
 *.wav
 *.flac
 
-# Ignore CSV files (optional, if not needed)
 *.csv
+server/api/__pycache__/utils.cpython-311.pyc
+/server/api/__pycache__
+
