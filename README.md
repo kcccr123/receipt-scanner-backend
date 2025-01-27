@@ -79,6 +79,20 @@ To build an image of the server using the dockerfile, please install [Docker](ht
 
 ### BART
 
+Training scripts for our BART model are located in the `BART` folder in the root directory.
+
+BART is used for word and sentence correction. In our case, product names. 
+The data required is a CSV containing words you expect BART will need to learn to correct. The script takes these words and generates improper versions of them for BART to learn for.
+
+Open `trainBart.py`.
+
+At the top of the script, replace each of the folder paths, `csv_path`, `model_dir`, and `save_dir`.
+Hyper parameters can be tuned at line 87.
+
+Run `python trainBart.py` to run the script.
+
+Once the training concludes, the new model will be saved to the selected model directory.
+
 ### YOLOv8
 
 Training tools for our YOLOv8 model are located in the `RSYOLOV8` folder.
@@ -130,6 +144,13 @@ To setup the training script:
 The backend code for our application is located inside the `server` folder.
 
 The server can be run in development mode using Flask or built as a production server with Gunicorn, containerized within a Docker image.
+
+With the new chatGPT integration, an OpenAI key should be added as an environment variable. 
+Create a `.env` file inside the server folder. Create the variable:
+
+`OPENAI_API_KEY=<Your API KEY>`
+
+The utilities inside `gpt_utils.py` will load and use the given key.
 
 **Run a development server**
 
