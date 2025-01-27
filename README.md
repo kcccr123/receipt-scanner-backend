@@ -145,7 +145,7 @@ The backend code for our application is located inside the `server` folder.
 
 The server can be run in development mode using Flask or built as a production server with Gunicorn, containerized within a Docker image.
 
-With the new chatGPT integration, an OpenAI key should be added as an environment variable. 
+With the new chatGPT integration, an OpenAI API key should be added as an environment variable. 
 Create a `.env` file inside the server folder. Create the variable:
 
 `OPENAI_API_KEY=<Your API KEY>`
