@@ -3,14 +3,11 @@ kind: Service
 metadata:
   name: flask-server-service
 spec:
+  type: LoadBalancer
+  loadBalancerIP: 35.223.228.22  # Replace with your reserved static IP
   selector:
     app: flask-server
   ports:
   - protocol: TCP
-    port: 80
-    targetPort: 5000
-    nodePort: 30001 
-  type: NodePort
-
-
-# audjust this later
+    port: 80           # External port for clients
+    targetPort: 5000   # Port Flask is listening on in the container
